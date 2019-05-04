@@ -1,0 +1,36 @@
+{
+    "name_space": {
+        "srv": "go.micro.srv",
+        "api": "go.micro.api",
+        "web": "go.micro.web"
+    },
+    "srv": {
+        "user": {
+            "name": "user",
+            "version": "Beta v1.0",
+            "port": 3001,
+            "extra": {
+                "jwt_secret_email": "originals_e_key",
+                "jwt_secret_user": "originals_u_key"
+            }
+        }
+    },
+    "sql": {
+        "user_name": "root",
+        "Password": "root",
+        "protocol": "tcp",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "database": "originals",
+        "max_life_time": 100,
+        "max_open_conns": 16,
+        "max_idle_conns": 16
+    },
+    "email": {
+        "user_name": "544181743@qq.com",
+        "password": "ptedqbiawrfkbdaj",
+        "host": "smtp.qq.com",
+        "port": 587,
+        "sender": "Originals-起源"
+    }
+}

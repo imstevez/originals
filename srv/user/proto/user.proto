@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package proto;
+
+service UserSrv {
+	rpc StartEmail(StartEmailReq) returns (StartEmailRsp) {};
+    rpc SignUp(SignUpReq) returns (SignUpRsp) {};
+}
+
+message StartEmailReq {
+    string email = 1;
+}
+
+message StartEmailRsp {
+    string sign_up_token = 1;
+}
+
+message User {
+    int64 id = 1;
+    string user_name = 2;
+    string password = 3;
+    string password_salt = 4;
+    string mobile = 5;
+    string email = 6;
+    int32 is_approved = 7;
+    int32 is_locked = 8;
+    string last_login_date = 9;
+    string last_password_changed_date = 10;
+    string last_lockout_date = 11;
+    string remark = 12;
+    string created_on = 13;
+    string updated_on = 14;
+}
+
+message SignUpReq {
+    User user = 1;
+}
+
+message SignUpRsp {
+    int64 user_id = 1;
+}
