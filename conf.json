@@ -10,8 +10,8 @@
             "version": "Beta v1.0",
             "port": 3001,
             "extra": {
-                "jwt_secret_email": "originals_e_key",
-                "jwt_secret_user": "originals_u_key"
+                "jwt_secret_invite": "originals_e_key",
+                "jwt_secret_auth": "originals_u_key"
             }
         }
     },

@@ -28,7 +28,7 @@ func main() {
 	// Initialise service
 	service.Init()
 
-	// Run servicesllkk
+	// Run services
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
 	}
