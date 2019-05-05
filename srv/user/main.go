@@ -19,6 +19,7 @@ func main() {
 	srvName := fmt.Sprintf("%s.%s", conf.SrvNameSpace, srvConf.Name)
 	service := micro.NewService(
 		initMysqlDB,
+		initRedis,
 		registerHandler,
 		micro.Name(srvName),
 		micro.Version(srvConf.Version),

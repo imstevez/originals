@@ -1,6 +1,7 @@
 package main
 
 import (
+	"originals/redis"
 	"originals/sql"
 	"originals/srv/user/handler"
 	"originals/srv/user/model"
@@ -29,6 +30,28 @@ func initMysqlDB(o *micro.Options) {
 			return err
 		}
 		log.Log("Database closed")
+		return nil
+	})
+}
+
+// Initialize redis
+func initRedis(o *micro.Options) {
+	o.BeforeStart = append(o.BeforeStart, func() error {
+		log.Log("Initializing redis")
+		err := redis.InitRedis()
+		if err != nil {
+			log.Log(err)
+			return err
+		}
+		return nil
+	})
+	o.AfterStop = append(o.AfterStop, func() error {
+		log.Log("Close redis")
+		if err := redis.Redis.Close(); err != nil {
+			log.Log("Close redis failed: " + err.Error())
+			return err
+		}
+		log.Log("redis closed")
 		return nil
 	})
 }
