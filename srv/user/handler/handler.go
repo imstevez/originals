@@ -10,13 +10,15 @@ import (
 	"originals/srv/user/model"
 	"originals/srv/user/proto"
 	"originals/utils"
+	"sync"
 	"time"
 
 	"github.com/micro/go-log"
 )
 
 type UserSrvHandler struct {
-	Model *model.UserSrvModel
+	freshTokenMu sync.Mutex
+	Model        *model.UserSrvModel
 }
 
 const signUpEmailBody = `
@@ -40,7 +42,7 @@ const signUpEmailBody = `
 const (
 	// Reg patterns
 	RegEmail    = `^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`
-	RegPassword = `^(?![A-Z]+$)(?![a-z]+$)(?!\d+$)\S{8,}$`
+	RegPassword = `^[a-zA-Z0-9]{4,16}$`
 	RegNickname = `^[a-zA-Z0-9_]{3,16}$`
 )
 
@@ -53,6 +55,7 @@ var (
 	ErrInvalidNickname = errors.New("invalid nickname")
 	ErrUserNotExist    = errors.New("user not exist")
 	ErrPasswordWrong   = errors.New("wrong password")
+	ErrTokenCanceled   = errors.New("token has been canceled")
 )
 
 // InviteUser
@@ -72,7 +75,7 @@ func (hdlr *UserSrvHandler) InviteUser(ctx context.Context, req *proto.InviteUse
 	}
 
 	// Create sign up token
-	secret := conf.SrvConf["user"].Extra["jwt_secret_email"]
+	secret := conf.SrvConf["user"].Extra["jwt_secret_invite"]
 	if secret == "" {
 		return ErrEmptySecret
 	}
@@ -122,6 +125,7 @@ func (hdlr *UserSrvHandler) InsertUser(ctx context.Context, req *proto.InsertUse
 		Email:        req.Email,
 		Password:     password,
 		PasswordSalt: salt,
+		Mobile:       req.Mobile,
 		Nickname:     req.Nickname,
 		ImageUrl:     req.ImageUrl,
 	}
@@ -148,6 +152,10 @@ func (hdlr *UserSrvHandler) GetAuthToken(ctx context.Context, req *proto.GetAuth
 	if user.Password != utils.Hash(req.Password, user.PasswordSalt) {
 		return ErrPasswordWrong
 	}
+	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
+	if secret == "" {
+		return ErrEmptySecret
+	}
 	claims := jwt.UserClaims{
 		UserId:   user.Id,
 		Email:    user.Email,
@@ -155,39 +163,84 @@ func (hdlr *UserSrvHandler) GetAuthToken(ctx context.Context, req *proto.GetAuth
 		Nickname: user.Nickname,
 		ImageUrl: user.ImageUrl,
 	}
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
-	}
-	claims.StandardClaims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+	claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
 	tokenStr, err := jwt.CreateToken(claims, secret)
 	if err != nil {
 		return err
 	}
-	if err := hdlr.Model.UpdateLastLoginTime(user.Id); err != nil {
+	if err := hdlr.Model.UpdateLastLoginDate(user.Id); err != nil {
 		return err
 	}
 	rsp.AuthToken = tokenStr
 	return nil
 }
 
-// ParseAuthToken
-func (hdlr *UserSrvHandler) ParseAuthToken(ctx context.Context, req *proto.ParseAuthTokenReq, rsp *proto.ParseAuthTokenRsp) error {
+// VerityAuth
+func (hdlr *UserSrvHandler) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenReq, rsp *proto.VerifyAuthTokenRsp) error {
+	if canceled, err := hdlr.Model.IsTokenCanceled(req.AuthToken); err != nil {
+		return err
+	} else if canceled {
+		return ErrTokenCanceled
+	}
+
 	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
 	if secret == "" {
 		return ErrEmptySecret
 	}
 	var claims = &jwt.UserClaims{}
 	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
-		return err
+		if err != jwt.ErrTokenExpired {
+			return err
+		}
+
+		refreshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(5 * time.Minute)
+		if time.Now().After(refreshDeadLine) {
+			return jwt.ErrTokenExpired
+		}
+
+		hdlr.freshTokenMu.Lock()
+		defer hdlr.freshTokenMu.Unlock()
+		if freshToken, err := hdlr.Model.GetFreshToken(req.AuthToken); err == nil {
+			rsp.FreshToken = freshToken
+		} else {
+			if err != model.ErrKeyNotExist {
+				return err
+			}
+			claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+			if freshToken, err := jwt.CreateToken(claims, secret); err != nil {
+				return err
+			} else {
+				if err := hdlr.Model.SetFreshToken(req.AuthToken, freshToken); err != nil {
+					return err
+				}
+				rsp.FreshToken = freshToken
+			}
+		}
 	}
 
-	rsp = &proto.ParseAuthTokenRsp{
-		UserId:   claims.UserId,
-		Email:    claims.Email,
-		Mobile:   claims.Mobile,
-		Nickname: claims.Nickname,
-		ImageUrl: claims.ImageUrl,
+	rsp.UserId = claims.UserId
+	rsp.Email = claims.Email
+	rsp.Mobile = claims.Mobile
+	rsp.Nickname = claims.Nickname
+	rsp.ImageUrl = claims.ImageUrl
+
+	return nil
+}
+
+// CancelAuthToken
+func (hdlr *UserSrvHandler) CancelAuthToken(ctx context.Context, req *proto.CancelAuthTokenReq, rsp *proto.CancelAuthTokenRsp) error {
+	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
+	if secret == "" {
+		return ErrEmptySecret
+	}
+	var claims = &jwt.UserClaims{}
+	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
+		if err != jwt.ErrTokenInvalid {
+			return err
+		}
+	}
+	if err := hdlr.Model.CancelToken(req.AuthToken, time.Unix(claims.ExpiresAt, 0)); err != nil {
+		return err
 	}
 	return nil
 }

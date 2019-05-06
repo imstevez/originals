@@ -63,7 +63,8 @@ func registerHandler(o *micro.Options) {
 		if err := proto.RegisterUserSrvHandler(o.Server,
 			&handler.UserSrvHandler{
 				Model: &model.UserSrvModel{
-					DB: sql.MysqlDB,
+					DB:    sql.MysqlDB,
+					Redis: redis.Redis,
 				},
 			}); err != nil {
 			return err

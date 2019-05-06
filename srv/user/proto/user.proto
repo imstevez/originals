@@ -7,7 +7,8 @@ service UserSrv {
     rpc ParseInviteToken(ParseInviteTokenReq) returns (ParseInviteTokenRsp) {};
     rpc InsertUser(InsertUserReq) returns (InsertUserRsp) {};
     rpc GetAuthToken(GetAuthTokenReq) returns (GetAuthTokenRsp) {};
-    rpc ParseAuthToken(ParseAuthTokenReq) returns (ParseAuthTokenRsp) {};
+    rpc VerifyAuthToken(VerifyAuthTokenReq) returns (VerifyAuthTokenRsp) {};
+    rpc CancelAuthToken(CancelAuthTokenReq) returns (CancelAuthTokenRsp) {};
 }
 
 message User {
@@ -66,14 +67,23 @@ message GetAuthTokenRsp {
     string auth_token = 1;
 }
 
-message ParseAuthTokenReq {
+message VerifyAuthTokenReq {
     string auth_token = 1;
 }
 
-message ParseAuthTokenRsp {
+message VerifyAuthTokenRsp {
     int64 user_id = 1;
     string email = 2;
     string mobile = 3;
     string nickname = 4;
     string image_url = 5;
+    string fresh_token = 6;
+}
+
+message CancelAuthTokenReq {
+    string auth_token = 1;
+}
+
+message CancelAuthTokenRsp {
+
 }

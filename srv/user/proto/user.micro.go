@@ -38,7 +38,8 @@ type UserSrvService interface {
 	ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, opts ...client.CallOption) (*ParseInviteTokenRsp, error)
 	InsertUser(ctx context.Context, in *InsertUserReq, opts ...client.CallOption) (*InsertUserRsp, error)
 	GetAuthToken(ctx context.Context, in *GetAuthTokenReq, opts ...client.CallOption) (*GetAuthTokenRsp, error)
-	ParseAuthToken(ctx context.Context, in *ParseAuthTokenReq, opts ...client.CallOption) (*ParseAuthTokenRsp, error)
+	VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error)
+	CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, opts ...client.CallOption) (*CancelAuthTokenRsp, error)
 }
 
 type userSrvService struct {
@@ -99,9 +100,19 @@ func (c *userSrvService) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, 
 	return out, nil
 }
 
-func (c *userSrvService) ParseAuthToken(ctx context.Context, in *ParseAuthTokenReq, opts ...client.CallOption) (*ParseAuthTokenRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.ParseAuthToken", in)
-	out := new(ParseAuthTokenRsp)
+func (c *userSrvService) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error) {
+	req := c.c.NewRequest(c.name, "UserSrv.VerifyAuthToken", in)
+	out := new(VerifyAuthTokenRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userSrvService) CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, opts ...client.CallOption) (*CancelAuthTokenRsp, error) {
+	req := c.c.NewRequest(c.name, "UserSrv.CancelAuthToken", in)
+	out := new(CancelAuthTokenRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -116,7 +127,8 @@ type UserSrvHandler interface {
 	ParseInviteToken(context.Context, *ParseInviteTokenReq, *ParseInviteTokenRsp) error
 	InsertUser(context.Context, *InsertUserReq, *InsertUserRsp) error
 	GetAuthToken(context.Context, *GetAuthTokenReq, *GetAuthTokenRsp) error
-	ParseAuthToken(context.Context, *ParseAuthTokenReq, *ParseAuthTokenRsp) error
+	VerifyAuthToken(context.Context, *VerifyAuthTokenReq, *VerifyAuthTokenRsp) error
+	CancelAuthToken(context.Context, *CancelAuthTokenReq, *CancelAuthTokenRsp) error
 }
 
 func RegisterUserSrvHandler(s server.Server, hdlr UserSrvHandler, opts ...server.HandlerOption) error {
@@ -125,7 +137,8 @@ func RegisterUserSrvHandler(s server.Server, hdlr UserSrvHandler, opts ...server
 		ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, out *ParseInviteTokenRsp) error
 		InsertUser(ctx context.Context, in *InsertUserReq, out *InsertUserRsp) error
 		GetAuthToken(ctx context.Context, in *GetAuthTokenReq, out *GetAuthTokenRsp) error
-		ParseAuthToken(ctx context.Context, in *ParseAuthTokenReq, out *ParseAuthTokenRsp) error
+		VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error
+		CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, out *CancelAuthTokenRsp) error
 	}
 	type UserSrv struct {
 		userSrv
@@ -154,6 +167,10 @@ func (h *userSrvHandler) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, 
 	return h.UserSrvHandler.GetAuthToken(ctx, in, out)
 }
 
-func (h *userSrvHandler) ParseAuthToken(ctx context.Context, in *ParseAuthTokenReq, out *ParseAuthTokenRsp) error {
-	return h.UserSrvHandler.ParseAuthToken(ctx, in, out)
+func (h *userSrvHandler) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error {
+	return h.UserSrvHandler.VerifyAuthToken(ctx, in, out)
+}
+
+func (h *userSrvHandler) CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, out *CancelAuthTokenRsp) error {
+	return h.UserSrvHandler.CancelAuthToken(ctx, in, out)
 }

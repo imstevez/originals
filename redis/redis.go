@@ -2,7 +2,10 @@ package redis
 
 import "github.com/go-redis/redis"
 
-var Redis *redis.Client
+var (
+	Redis *redis.Client
+	Nil   = redis.Nil
+)
 
 func InitRedis() error {
 	option := &redis.Options{
@@ -11,7 +14,7 @@ func InitRedis() error {
 		DB:       0,
 		PoolSize: 5,
 	}
-	Redis := redis.NewClient(option)
+	Redis = redis.NewClient(option)
 	if _, err := Redis.Ping().Result(); err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ func CreateToken(claims jwt.Claims, secretKey string) (string, error) {
 
 func ParseToken(tokenStr string, secretKey string, claims jwt.Claims) error {
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
+		return []byte(secretKey), nil
 	})
 	if err != nil {
 		valiErr := err.(*jwt.ValidationError)

@@ -15,7 +15,7 @@ var (
 
 func InitConf() error {
 	// Config file
-	if err := config.LoadFile("/Users/stevez/gocode/src/originals/conf.json"); err != nil {
+	if err := config.LoadFile("../../conf.json"); err != nil {
 		return err
 	}
 
