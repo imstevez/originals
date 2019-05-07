@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package proto;
+
+service Token {
+	rpc GetInviteToken(GetInviteTokenReq) returns (GetInviteTokenRsp) {};
+    rpc VerifyInvite(VerifyInviteReq) returns (VerifyInviteRsp) {};
+    rpc GetAuthToken(GetAuthTokenReq) returns (GetAuthTokenRsp) {};
+    rpc VerifyAuth(VerifyAuthReq) returns (VerifyAuthRsp) {};
+}
+
+enum Status {
+    OK = 0;
+    ErrTokenInvalid = 1;
+    ErrTokenExpired = 2;
+}
+
+message InviteClaims {
+    string email = 1;
+}
+message GetInviteTokenReq {
+    InviteClaims claims = 1;
+}
+
+message GetInviteTokenRsp {
+    string token = 2;
+}
+
+message VerifyInviteReq {
+    string token = 1;
+}
+
+message VerifyInviteRsp {
+    Status status =1;
+    InviteClaims claims = 2;
+}
+
+message AuthClaims {
+    int64 user_id = 1;
+    string email = 2;
+    string mobile = 3;
+    string nickname = 4;
+    string image_url = 5;
+}
+
+message GetAuthTokenReq {
+    AuthClaims claims = 1;
+}
+
+message GetAuthTokenRsp {
+    string token = 1;
+}
+
+message VerifyAuthReq {
+    string token = 1;
+}
+
+message VerifyAuthRsp {
+    Status status = 1;
+    AuthClaims claims = 2;
+}
+
