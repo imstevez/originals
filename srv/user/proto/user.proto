@@ -2,88 +2,60 @@ syntax = "proto3";
 
 package proto;
 
-service UserSrv {
-	rpc InviteUser(InviteUserReq) returns (InviteUserRsp) {};
-    rpc ParseInviteToken(ParseInviteTokenReq) returns (ParseInviteTokenRsp) {};
-    rpc InsertUser(InsertUserReq) returns (InsertUserRsp) {};
-    rpc GetAuthToken(GetAuthTokenReq) returns (GetAuthTokenRsp) {};
-    rpc VerifyAuthToken(VerifyAuthTokenReq) returns (VerifyAuthTokenRsp) {};
-    rpc CancelAuthToken(CancelAuthTokenReq) returns (CancelAuthTokenRsp) {};
+service User {
+	rpc Invite(InviteReq) returns (InviteRsp) {};
+    rpc Register(RegisterReq) returns (RegisterRsp) {};
+    rpc Login(LoginReq) returns (LoginRsp) {};
+    rpc Logout(LogoutReq) returns (LogoutRsp) {};
 }
 
-message User {
-    int64 id = 1;
-    string email = 2;
-    string password = 3;
-    string password_salt = 4;
-    string mobile = 5;
-    string nickname = 6;
-    string image_url = 7;
-    int32 is_approved = 8;
-    int32 is_locked = 9;
-    int32 is_deleted = 10;
-    string last_login_date = 11;
-    string last_password_changed_date = 12;
-    string last_lockout_date = 13;
-    string remark = 14;
-    string created_on = 15;
-    string updated_on = 16;
+enum Status {
+    Empty = 0;
+    OK = 200;
+    ParamInvalid = 300;
+    EmailInvalid = 301;
+    EmailRegistered = 302;
+    EmailSendFailed = 303;
+    UserNotExist = 401;
+    PasswordWrong = 402;
 }
 
-message InviteUserReq {
+message InviteReq {
     string email = 1;
 }
 
-message InviteUserRsp {
-    string invite_token = 1;
+message InviteRsp {
+    Status status = 1;
+    string invite_token = 2;
 }
 
-message ParseInviteTokenReq {
-    string invite_token = 1;
-}
-
-message ParseInviteTokenRsp {
-    string email = 1;
-}
-
-message InsertUserReq {
+message RegisterReq {
     string email = 1;
     string password = 2;
-    string nickname = 3;
     string mobile = 4;
-    string image_url = 5;
+    string nickname = 5;
+    string image_url = 6;
 }
 
-message InsertUserRsp {
-    int64 user_id = 1;
+message RegisterRsp {
+    Status status = 1;
+    int64 user_id = 2;
 }
 
-message GetAuthTokenReq {
+message LoginReq {
     string email = 1;
     string password = 2;
 }
 
-message GetAuthTokenRsp {
+message LoginRsp {
+    Status status = 1;
+    string auth_token = 2;
+}
+
+message LogoutReq {
     string auth_token = 1;
 }
 
-message VerifyAuthTokenReq {
-    string auth_token = 1;
-}
-
-message VerifyAuthTokenRsp {
-    int64 user_id = 1;
-    string email = 2;
-    string mobile = 3;
-    string nickname = 4;
-    string image_url = 5;
-    string fresh_token = 6;
-}
-
-message CancelAuthTokenReq {
-    string auth_token = 1;
-}
-
-message CancelAuthTokenRsp {
-
+message LogoutRsp {
+    Status status = 1;
 }

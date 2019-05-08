@@ -31,38 +31,36 @@ var _ context.Context
 var _ client.Option
 var _ server.Option
 
-// Client API for UserSrv service
+// Client API for User service
 
-type UserSrvService interface {
-	InviteUser(ctx context.Context, in *InviteUserReq, opts ...client.CallOption) (*InviteUserRsp, error)
-	ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, opts ...client.CallOption) (*ParseInviteTokenRsp, error)
-	InsertUser(ctx context.Context, in *InsertUserReq, opts ...client.CallOption) (*InsertUserRsp, error)
-	GetAuthToken(ctx context.Context, in *GetAuthTokenReq, opts ...client.CallOption) (*GetAuthTokenRsp, error)
-	VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error)
-	CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, opts ...client.CallOption) (*CancelAuthTokenRsp, error)
+type UserService interface {
+	Invite(ctx context.Context, in *InviteReq, opts ...client.CallOption) (*InviteRsp, error)
+	Register(ctx context.Context, in *RegisterReq, opts ...client.CallOption) (*RegisterRsp, error)
+	Login(ctx context.Context, in *LoginReq, opts ...client.CallOption) (*LoginRsp, error)
+	Logout(ctx context.Context, in *LogoutReq, opts ...client.CallOption) (*LogoutRsp, error)
 }
 
-type userSrvService struct {
+type userService struct {
 	c    client.Client
 	name string
 }
 
-func NewUserSrvService(name string, c client.Client) UserSrvService {
+func NewUserService(name string, c client.Client) UserService {
 	if c == nil {
 		c = client.NewClient()
 	}
 	if len(name) == 0 {
 		name = "proto"
 	}
-	return &userSrvService{
+	return &userService{
 		c:    c,
 		name: name,
 	}
 }
 
-func (c *userSrvService) InviteUser(ctx context.Context, in *InviteUserReq, opts ...client.CallOption) (*InviteUserRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.InviteUser", in)
-	out := new(InviteUserRsp)
+func (c *userService) Invite(ctx context.Context, in *InviteReq, opts ...client.CallOption) (*InviteRsp, error) {
+	req := c.c.NewRequest(c.name, "User.Invite", in)
+	out := new(InviteRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -70,9 +68,9 @@ func (c *userSrvService) InviteUser(ctx context.Context, in *InviteUserReq, opts
 	return out, nil
 }
 
-func (c *userSrvService) ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, opts ...client.CallOption) (*ParseInviteTokenRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.ParseInviteToken", in)
-	out := new(ParseInviteTokenRsp)
+func (c *userService) Register(ctx context.Context, in *RegisterReq, opts ...client.CallOption) (*RegisterRsp, error) {
+	req := c.c.NewRequest(c.name, "User.Register", in)
+	out := new(RegisterRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -80,9 +78,9 @@ func (c *userSrvService) ParseInviteToken(ctx context.Context, in *ParseInviteTo
 	return out, nil
 }
 
-func (c *userSrvService) InsertUser(ctx context.Context, in *InsertUserReq, opts ...client.CallOption) (*InsertUserRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.InsertUser", in)
-	out := new(InsertUserRsp)
+func (c *userService) Login(ctx context.Context, in *LoginReq, opts ...client.CallOption) (*LoginRsp, error) {
+	req := c.c.NewRequest(c.name, "User.Login", in)
+	out := new(LoginRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -90,9 +88,9 @@ func (c *userSrvService) InsertUser(ctx context.Context, in *InsertUserReq, opts
 	return out, nil
 }
 
-func (c *userSrvService) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, opts ...client.CallOption) (*GetAuthTokenRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.GetAuthToken", in)
-	out := new(GetAuthTokenRsp)
+func (c *userService) Logout(ctx context.Context, in *LogoutReq, opts ...client.CallOption) (*LogoutRsp, error) {
+	req := c.c.NewRequest(c.name, "User.Logout", in)
+	out := new(LogoutRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -100,77 +98,45 @@ func (c *userSrvService) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, 
 	return out, nil
 }
 
-func (c *userSrvService) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.VerifyAuthToken", in)
-	out := new(VerifyAuthTokenRsp)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
+// Server API for User service
+
+type UserHandler interface {
+	Invite(context.Context, *InviteReq, *InviteRsp) error
+	Register(context.Context, *RegisterReq, *RegisterRsp) error
+	Login(context.Context, *LoginReq, *LoginRsp) error
+	Logout(context.Context, *LogoutReq, *LogoutRsp) error
+}
+
+func RegisterUserHandler(s server.Server, hdlr UserHandler, opts ...server.HandlerOption) error {
+	type user interface {
+		Invite(ctx context.Context, in *InviteReq, out *InviteRsp) error
+		Register(ctx context.Context, in *RegisterReq, out *RegisterRsp) error
+		Login(ctx context.Context, in *LoginReq, out *LoginRsp) error
+		Logout(ctx context.Context, in *LogoutReq, out *LogoutRsp) error
 	}
-	return out, nil
-}
-
-func (c *userSrvService) CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, opts ...client.CallOption) (*CancelAuthTokenRsp, error) {
-	req := c.c.NewRequest(c.name, "UserSrv.CancelAuthToken", in)
-	out := new(CancelAuthTokenRsp)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
+	type User struct {
+		user
 	}
-	return out, nil
+	h := &userHandler{hdlr}
+	return s.Handle(s.NewHandler(&User{h}, opts...))
 }
 
-// Server API for UserSrv service
-
-type UserSrvHandler interface {
-	InviteUser(context.Context, *InviteUserReq, *InviteUserRsp) error
-	ParseInviteToken(context.Context, *ParseInviteTokenReq, *ParseInviteTokenRsp) error
-	InsertUser(context.Context, *InsertUserReq, *InsertUserRsp) error
-	GetAuthToken(context.Context, *GetAuthTokenReq, *GetAuthTokenRsp) error
-	VerifyAuthToken(context.Context, *VerifyAuthTokenReq, *VerifyAuthTokenRsp) error
-	CancelAuthToken(context.Context, *CancelAuthTokenReq, *CancelAuthTokenRsp) error
+type userHandler struct {
+	UserHandler
 }
 
-func RegisterUserSrvHandler(s server.Server, hdlr UserSrvHandler, opts ...server.HandlerOption) error {
-	type userSrv interface {
-		InviteUser(ctx context.Context, in *InviteUserReq, out *InviteUserRsp) error
-		ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, out *ParseInviteTokenRsp) error
-		InsertUser(ctx context.Context, in *InsertUserReq, out *InsertUserRsp) error
-		GetAuthToken(ctx context.Context, in *GetAuthTokenReq, out *GetAuthTokenRsp) error
-		VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error
-		CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, out *CancelAuthTokenRsp) error
-	}
-	type UserSrv struct {
-		userSrv
-	}
-	h := &userSrvHandler{hdlr}
-	return s.Handle(s.NewHandler(&UserSrv{h}, opts...))
+func (h *userHandler) Invite(ctx context.Context, in *InviteReq, out *InviteRsp) error {
+	return h.UserHandler.Invite(ctx, in, out)
 }
 
-type userSrvHandler struct {
-	UserSrvHandler
+func (h *userHandler) Register(ctx context.Context, in *RegisterReq, out *RegisterRsp) error {
+	return h.UserHandler.Register(ctx, in, out)
 }
 
-func (h *userSrvHandler) InviteUser(ctx context.Context, in *InviteUserReq, out *InviteUserRsp) error {
-	return h.UserSrvHandler.InviteUser(ctx, in, out)
+func (h *userHandler) Login(ctx context.Context, in *LoginReq, out *LoginRsp) error {
+	return h.UserHandler.Login(ctx, in, out)
 }
 
-func (h *userSrvHandler) ParseInviteToken(ctx context.Context, in *ParseInviteTokenReq, out *ParseInviteTokenRsp) error {
-	return h.UserSrvHandler.ParseInviteToken(ctx, in, out)
-}
-
-func (h *userSrvHandler) InsertUser(ctx context.Context, in *InsertUserReq, out *InsertUserRsp) error {
-	return h.UserSrvHandler.InsertUser(ctx, in, out)
-}
-
-func (h *userSrvHandler) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, out *GetAuthTokenRsp) error {
-	return h.UserSrvHandler.GetAuthToken(ctx, in, out)
-}
-
-func (h *userSrvHandler) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error {
-	return h.UserSrvHandler.VerifyAuthToken(ctx, in, out)
-}
-
-func (h *userSrvHandler) CancelAuthToken(ctx context.Context, in *CancelAuthTokenReq, out *CancelAuthTokenRsp) error {
-	return h.UserSrvHandler.CancelAuthToken(ctx, in, out)
+func (h *userHandler) Logout(ctx context.Context, in *LogoutReq, out *LogoutRsp) error {
+	return h.UserHandler.Logout(ctx, in, out)
 }

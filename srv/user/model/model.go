@@ -2,7 +2,6 @@ package model
 
 import (
 	"database/sql"
-	"originals/srv/user/proto"
 	"time"
 
 	"shendu.com/errors"
@@ -10,9 +9,8 @@ import (
 	"github.com/go-redis/redis"
 )
 
-type UserSrvModel struct {
-	DB    *sql.DB
-	Redis *redis.Client
+type UserModel struct {
+	DB *sql.DB
 }
 
 const (
@@ -23,10 +21,42 @@ const (
 
 var ErrKeyNotExist = errors.New("key is not exist")
 
+// IsEmailExist
+func (mdl *UserModel) IsEmailExist(email string) (bool, error) {
+	sqlStr := `select 1 from users where email = ? limit 1`
+	stmt, err := mdl.DB.Prepare(sqlStr)
+	if err != nil {
+		return false, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(email)
+	if err != nil {
+		return false, nil
+	}
+	defer rows.Close()
+	for rows.Next() {
+		return true, nil
+	}
+	return false, nil
+}
+
+type SecretUser struct {
+	UserId       int64
+	Email        string
+	Password     string
+	PasswordSalt string
+	Mobile       string
+	NickName     string
+	ImageUrl     string
+}
+
 // GetUserByEmail
-func (mdl *UserSrvModel) GetUserByEmail(email string) (*proto.User, error) {
-	sqlStr := `select ID, Email, Password, PasswordSalt, Mobile, Nickname, ImageUrl 
-from users where Email = ? and isDeleted = 0;`
+func (mdl *UserModel) GetUserSecret(email string) (*SecretUser, error) {
+	sqlStr := `select ID, Email, Password, PasswordSalt,
+Mobile, Nickname, ImageUrl
+		from users 
+		where Email = ? and isDeleted = 0;
+	`
 	stmt, err := mdl.DB.Prepare(sqlStr)
 	if err != nil {
 		return nil, err
@@ -37,45 +67,32 @@ from users where Email = ? and isDeleted = 0;`
 		return nil, err
 	}
 	defer rows.Close()
-	var user proto.User
+	var sUser SecretUser
 	for rows.Next() {
-		if err := rows.Scan(&user.Id,
-			&user.Email,
-			&user.Password,
-			&user.PasswordSalt,
-			&user.Mobile,
-			&user.Nickname,
-			&user.ImageUrl); err != nil {
+		if err := rows.Scan(&sUser.UserId,
+			&sUser.Email,
+			&sUser.Password,
+			&sUser.PasswordSalt,
+			&sUser.Mobile,
+			&sUser.NickName,
+			&sUser.ImageUrl); err != nil {
 			return nil, err
 		}
 	}
-	return &user, nil
+	return &sUser, nil
 }
 
-// CountUserEmail
-func (mdl *UserSrvModel) CountUserEmail(email string) (int, error) {
-	sqlStr := `select count(Email) from users where email = ?;`
-	stmt, err := mdl.DB.Prepare(sqlStr)
-	if err != nil {
-		return 0, err
-	}
-	defer stmt.Close()
-	rows, err := stmt.Query(email)
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-	var count int
-	for rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return 0, err
-		}
-	}
-	return count, nil
+type InserUserObj struct {
+	Email        string
+	Password     string
+	PasswordSalt string
+	Mobile       string
+	Nickname     string
+	ImageUrl     string
 }
 
 // InserUser
-func (mdl *UserSrvModel) InsertUser(user *proto.User) (int64, error) {
+func (mdl *UserModel) InsertUser(user *InserUserObj) (int64, error) {
 	sqlStr := `insert into users (Email, Password, PasswordSalt, Mobile, NickName,
 ImageUrl, CreatedOn) 
 		select ?, ?, ?, ?, ?, ?, ? from dual
@@ -106,7 +123,7 @@ ImageUrl, CreatedOn)
 }
 
 // UpdateLastLoginTime
-func (mdl *UserSrvModel) UpdateLastLoginDate(userId int64) error {
+func (mdl *UserModel) UpdateLastLoginDate(userId int64) error {
 	sqlStr := `update users set LastLoginDate = ? where ID = ?`
 	stmt, err := mdl.DB.Prepare(sqlStr)
 	if err != nil {
@@ -121,7 +138,7 @@ func (mdl *UserSrvModel) UpdateLastLoginDate(userId int64) error {
 }
 
 // CancelToken
-func (mdl *UserSrvModel) CancelToken(token string, expiredAt time.Time) error {
+func (mdl *UserModel) CancelToken(token string, expiredAt time.Time) error {
 	key := CancelTokenField + ":" + token
 	expiration := time.Until(expiredAt.Add(RefreshSeconds * time.Second))
 	if err := mdl.Redis.Set(key, token, expiration).Err(); err != nil {
@@ -131,7 +148,7 @@ func (mdl *UserSrvModel) CancelToken(token string, expiredAt time.Time) error {
 }
 
 // IsTokenCanceled
-func (mdl *UserSrvModel) IsTokenCanceled(token string) (bool, error) {
+func (mdl *UserModel) IsTokenCanceled(token string) (bool, error) {
 	key := CancelTokenField + ":" + token
 	val, err := mdl.Redis.Exists(key).Result()
 	if err != nil {
@@ -141,7 +158,7 @@ func (mdl *UserSrvModel) IsTokenCanceled(token string) (bool, error) {
 }
 
 // GetFreshToken
-func (mdl *UserSrvModel) GetFreshToken(token string) (string, error) {
+func (mdl *UserModel) GetFreshToken(token string) (string, error) {
 	key := FreshTokenField + ":" + token
 	val, err := mdl.Redis.Get(key).Result()
 	if err != nil {
@@ -154,7 +171,7 @@ func (mdl *UserSrvModel) GetFreshToken(token string) (string, error) {
 }
 
 // SetFreshToken
-func (mdl *UserSrvModel) SetFreshToken(oldToken, newToken string) error {
+func (mdl *UserModel) SetFreshToken(oldToken, newToken string) error {
 	key := FreshTokenField + ":" + oldToken
 	if err := mdl.Redis.Set(key, newToken, RefreshSeconds*time.Second).Err(); err != nil {
 		return err

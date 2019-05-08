@@ -11,12 +11,13 @@ service Token {
 }
 
 enum Status {
-    Empty = 0;
-    OK = 1;
-    TokenRefreshed = 2;
-    TokenInvalid = 3;
-    TokenExpired = 4;
-    TokenCanceled = 5;
+    Empty          = 0;
+    OK             = 200;
+    TokenRefreshed = 201;
+    ParamInvalid   = 300;
+    TokenInvalid   = 400;
+    TokenExpired   = 401;
+    TokenCanceled  = 402;
 }
 
 message InviteClaims {
@@ -27,6 +28,7 @@ message GetInviteTokenReq {
 }
 
 message GetInviteTokenRsp {
+    Status status = 1;
     string token = 2;
 }
 
@@ -52,7 +54,8 @@ message GetAuthTokenReq {
 }
 
 message GetAuthTokenRsp {
-    string token = 1;
+    Status status = 1;
+    string token = 2;
 }
 
 message VerifyAuthTokenReq {

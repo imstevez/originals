@@ -42,6 +42,10 @@ type authTokenClaims struct {
 
 // GetInviteToken
 func (t *Token) GetInviteToken(ctx context.Context, req *proto.GetInviteTokenReq, rsp *proto.GetInviteTokenRsp) error {
+	if req.Claims == nil {
+		rsp.Status = proto.Status_ParamInvalid
+		return nil
+	}
 	claims := inviteTokenClaims{
 		Email: req.Claims.Email,
 		StandardClaims: jwt.StandardClaims{
@@ -54,6 +58,7 @@ func (t *Token) GetInviteToken(ctx context.Context, req *proto.GetInviteTokenReq
 	if err != nil {
 		return err
 	}
+	rsp.Status = proto.Status_OK
 	rsp.Token = tokenStr
 	return nil
 }
@@ -83,6 +88,10 @@ func (t *Token) VerifyInviteToken(ctx context.Context, req *proto.VerifyInviteTo
 
 // GetAuthToken
 func (t *Token) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rsp *proto.GetAuthTokenRsp) error {
+	if req.Claims == nil {
+		rsp.Status = proto.Status_ParamInvalid
+		return nil
+	}
 	claims := authTokenClaims{
 		UserId:   req.Claims.UserId,
 		Email:    req.Claims.Email,
@@ -99,6 +108,7 @@ func (t *Token) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rs
 	if err != nil {
 		return err
 	}
+	rsp.Status = proto.Status_OK
 	rsp.Token = tokenStr
 	return nil
 }

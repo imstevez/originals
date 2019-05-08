@@ -20,765 +20,518 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type User struct {
-	Id                      int64    `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email                   string   `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Password                string   `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	PasswordSalt            string   `protobuf:"bytes,4,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
-	Mobile                  string   `protobuf:"bytes,5,opt,name=mobile,proto3" json:"mobile,omitempty"`
-	Nickname                string   `protobuf:"bytes,6,opt,name=nickname,proto3" json:"nickname,omitempty"`
-	ImageUrl                string   `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	IsApproved              int32    `protobuf:"varint,8,opt,name=is_approved,json=isApproved,proto3" json:"is_approved,omitempty"`
-	IsLocked                int32    `protobuf:"varint,9,opt,name=is_locked,json=isLocked,proto3" json:"is_locked,omitempty"`
-	IsDeleted               int32    `protobuf:"varint,10,opt,name=is_deleted,json=isDeleted,proto3" json:"is_deleted,omitempty"`
-	LastLoginDate           string   `protobuf:"bytes,11,opt,name=last_login_date,json=lastLoginDate,proto3" json:"last_login_date,omitempty"`
-	LastPasswordChangedDate string   `protobuf:"bytes,12,opt,name=last_password_changed_date,json=lastPasswordChangedDate,proto3" json:"last_password_changed_date,omitempty"`
-	LastLockoutDate         string   `protobuf:"bytes,13,opt,name=last_lockout_date,json=lastLockoutDate,proto3" json:"last_lockout_date,omitempty"`
-	Remark                  string   `protobuf:"bytes,14,opt,name=remark,proto3" json:"remark,omitempty"`
-	CreatedOn               string   `protobuf:"bytes,15,opt,name=created_on,json=createdOn,proto3" json:"created_on,omitempty"`
-	UpdatedOn               string   `protobuf:"bytes,16,opt,name=updated_on,json=updatedOn,proto3" json:"updated_on,omitempty"`
-	XXX_NoUnkeyedLiteral    struct{} `json:"-"`
-	XXX_unrecognized        []byte   `json:"-"`
-	XXX_sizecache           int32    `json:"-"`
+type Status int32
+
+const (
+	Status_Empty           Status = 0
+	Status_OK              Status = 200
+	Status_ParamInvalid    Status = 300
+	Status_EmailInvalid    Status = 301
+	Status_EmailRegistered Status = 302
+	Status_EmailSendFailed Status = 303
+	Status_UserNotExist    Status = 401
+	Status_PasswordWrong   Status = 402
+)
+
+var Status_name = map[int32]string{
+	0:   "Empty",
+	200: "OK",
+	300: "ParamInvalid",
+	301: "EmailInvalid",
+	302: "EmailRegistered",
+	303: "EmailSendFailed",
+	401: "UserNotExist",
+	402: "PasswordWrong",
 }
 
-func (m *User) Reset()         { *m = User{} }
-func (m *User) String() string { return proto.CompactTextString(m) }
-func (*User) ProtoMessage()    {}
-func (*User) Descriptor() ([]byte, []int) {
+var Status_value = map[string]int32{
+	"Empty":           0,
+	"OK":              200,
+	"ParamInvalid":    300,
+	"EmailInvalid":    301,
+	"EmailRegistered": 302,
+	"EmailSendFailed": 303,
+	"UserNotExist":    401,
+	"PasswordWrong":   402,
+}
+
+func (x Status) String() string {
+	return proto.EnumName(Status_name, int32(x))
+}
+
+func (Status) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{0}
 }
 
-func (m *User) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_User.Unmarshal(m, b)
-}
-func (m *User) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_User.Marshal(b, m, deterministic)
-}
-func (m *User) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_User.Merge(m, src)
-}
-func (m *User) XXX_Size() int {
-	return xxx_messageInfo_User.Size(m)
-}
-func (m *User) XXX_DiscardUnknown() {
-	xxx_messageInfo_User.DiscardUnknown(m)
+type InviteReq struct {
+	Email                string   `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-var xxx_messageInfo_User proto.InternalMessageInfo
-
-func (m *User) GetId() int64 {
-	if m != nil {
-		return m.Id
-	}
-	return 0
+func (m *InviteReq) Reset()         { *m = InviteReq{} }
+func (m *InviteReq) String() string { return proto.CompactTextString(m) }
+func (*InviteReq) ProtoMessage()    {}
+func (*InviteReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{0}
 }
 
-func (m *User) GetEmail() string {
+func (m *InviteReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InviteReq.Unmarshal(m, b)
+}
+func (m *InviteReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InviteReq.Marshal(b, m, deterministic)
+}
+func (m *InviteReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InviteReq.Merge(m, src)
+}
+func (m *InviteReq) XXX_Size() int {
+	return xxx_messageInfo_InviteReq.Size(m)
+}
+func (m *InviteReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_InviteReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InviteReq proto.InternalMessageInfo
+
+func (m *InviteReq) GetEmail() string {
 	if m != nil {
 		return m.Email
 	}
 	return ""
 }
 
-func (m *User) GetPassword() string {
+type InviteRsp struct {
+	Status               Status   `protobuf:"varint,1,opt,name=status,proto3,enum=proto.Status" json:"status,omitempty"`
+	InviteToken          string   `protobuf:"bytes,2,opt,name=invite_token,json=inviteToken,proto3" json:"invite_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InviteRsp) Reset()         { *m = InviteRsp{} }
+func (m *InviteRsp) String() string { return proto.CompactTextString(m) }
+func (*InviteRsp) ProtoMessage()    {}
+func (*InviteRsp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{1}
+}
+
+func (m *InviteRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InviteRsp.Unmarshal(m, b)
+}
+func (m *InviteRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InviteRsp.Marshal(b, m, deterministic)
+}
+func (m *InviteRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InviteRsp.Merge(m, src)
+}
+func (m *InviteRsp) XXX_Size() int {
+	return xxx_messageInfo_InviteRsp.Size(m)
+}
+func (m *InviteRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_InviteRsp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InviteRsp proto.InternalMessageInfo
+
+func (m *InviteRsp) GetStatus() Status {
+	if m != nil {
+		return m.Status
+	}
+	return Status_Empty
+}
+
+func (m *InviteRsp) GetInviteToken() string {
+	if m != nil {
+		return m.InviteToken
+	}
+	return ""
+}
+
+type UserSecret struct {
+	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	PasswordSalt         string   `protobuf:"bytes,3,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UserSecret) Reset()         { *m = UserSecret{} }
+func (m *UserSecret) String() string { return proto.CompactTextString(m) }
+func (*UserSecret) ProtoMessage()    {}
+func (*UserSecret) Descriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{2}
+}
+
+func (m *UserSecret) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UserSecret.Unmarshal(m, b)
+}
+func (m *UserSecret) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UserSecret.Marshal(b, m, deterministic)
+}
+func (m *UserSecret) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UserSecret.Merge(m, src)
+}
+func (m *UserSecret) XXX_Size() int {
+	return xxx_messageInfo_UserSecret.Size(m)
+}
+func (m *UserSecret) XXX_DiscardUnknown() {
+	xxx_messageInfo_UserSecret.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UserSecret proto.InternalMessageInfo
+
+func (m *UserSecret) GetPassword() string {
 	if m != nil {
 		return m.Password
 	}
 	return ""
 }
 
-func (m *User) GetPasswordSalt() string {
+func (m *UserSecret) GetPasswordSalt() string {
 	if m != nil {
 		return m.PasswordSalt
 	}
 	return ""
 }
 
-func (m *User) GetMobile() string {
-	if m != nil {
-		return m.Mobile
-	}
-	return ""
-}
-
-func (m *User) GetNickname() string {
-	if m != nil {
-		return m.Nickname
-	}
-	return ""
-}
-
-func (m *User) GetImageUrl() string {
-	if m != nil {
-		return m.ImageUrl
-	}
-	return ""
-}
-
-func (m *User) GetIsApproved() int32 {
-	if m != nil {
-		return m.IsApproved
-	}
-	return 0
-}
-
-func (m *User) GetIsLocked() int32 {
-	if m != nil {
-		return m.IsLocked
-	}
-	return 0
-}
-
-func (m *User) GetIsDeleted() int32 {
-	if m != nil {
-		return m.IsDeleted
-	}
-	return 0
-}
-
-func (m *User) GetLastLoginDate() string {
-	if m != nil {
-		return m.LastLoginDate
-	}
-	return ""
-}
-
-func (m *User) GetLastPasswordChangedDate() string {
-	if m != nil {
-		return m.LastPasswordChangedDate
-	}
-	return ""
-}
-
-func (m *User) GetLastLockoutDate() string {
-	if m != nil {
-		return m.LastLockoutDate
-	}
-	return ""
-}
-
-func (m *User) GetRemark() string {
-	if m != nil {
-		return m.Remark
-	}
-	return ""
-}
-
-func (m *User) GetCreatedOn() string {
-	if m != nil {
-		return m.CreatedOn
-	}
-	return ""
-}
-
-func (m *User) GetUpdatedOn() string {
-	if m != nil {
-		return m.UpdatedOn
-	}
-	return ""
-}
-
-type InviteUserReq struct {
+type RegisterReq struct {
 	Email                string   `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Mobile               string   `protobuf:"bytes,4,opt,name=mobile,proto3" json:"mobile,omitempty"`
+	Nickname             string   `protobuf:"bytes,5,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	ImageUrl             string   `protobuf:"bytes,6,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *InviteUserReq) Reset()         { *m = InviteUserReq{} }
-func (m *InviteUserReq) String() string { return proto.CompactTextString(m) }
-func (*InviteUserReq) ProtoMessage()    {}
-func (*InviteUserReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{1}
-}
-
-func (m *InviteUserReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InviteUserReq.Unmarshal(m, b)
-}
-func (m *InviteUserReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InviteUserReq.Marshal(b, m, deterministic)
-}
-func (m *InviteUserReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InviteUserReq.Merge(m, src)
-}
-func (m *InviteUserReq) XXX_Size() int {
-	return xxx_messageInfo_InviteUserReq.Size(m)
-}
-func (m *InviteUserReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_InviteUserReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_InviteUserReq proto.InternalMessageInfo
-
-func (m *InviteUserReq) GetEmail() string {
-	if m != nil {
-		return m.Email
-	}
-	return ""
-}
-
-type InviteUserRsp struct {
-	InviteToken          string   `protobuf:"bytes,1,opt,name=invite_token,json=inviteToken,proto3" json:"invite_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *InviteUserRsp) Reset()         { *m = InviteUserRsp{} }
-func (m *InviteUserRsp) String() string { return proto.CompactTextString(m) }
-func (*InviteUserRsp) ProtoMessage()    {}
-func (*InviteUserRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{2}
-}
-
-func (m *InviteUserRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InviteUserRsp.Unmarshal(m, b)
-}
-func (m *InviteUserRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InviteUserRsp.Marshal(b, m, deterministic)
-}
-func (m *InviteUserRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InviteUserRsp.Merge(m, src)
-}
-func (m *InviteUserRsp) XXX_Size() int {
-	return xxx_messageInfo_InviteUserRsp.Size(m)
-}
-func (m *InviteUserRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_InviteUserRsp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_InviteUserRsp proto.InternalMessageInfo
-
-func (m *InviteUserRsp) GetInviteToken() string {
-	if m != nil {
-		return m.InviteToken
-	}
-	return ""
-}
-
-type ParseInviteTokenReq struct {
-	InviteToken          string   `protobuf:"bytes,1,opt,name=invite_token,json=inviteToken,proto3" json:"invite_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ParseInviteTokenReq) Reset()         { *m = ParseInviteTokenReq{} }
-func (m *ParseInviteTokenReq) String() string { return proto.CompactTextString(m) }
-func (*ParseInviteTokenReq) ProtoMessage()    {}
-func (*ParseInviteTokenReq) Descriptor() ([]byte, []int) {
+func (m *RegisterReq) Reset()         { *m = RegisterReq{} }
+func (m *RegisterReq) String() string { return proto.CompactTextString(m) }
+func (*RegisterReq) ProtoMessage()    {}
+func (*RegisterReq) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{3}
 }
 
-func (m *ParseInviteTokenReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ParseInviteTokenReq.Unmarshal(m, b)
+func (m *RegisterReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RegisterReq.Unmarshal(m, b)
 }
-func (m *ParseInviteTokenReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ParseInviteTokenReq.Marshal(b, m, deterministic)
+func (m *RegisterReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RegisterReq.Marshal(b, m, deterministic)
 }
-func (m *ParseInviteTokenReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ParseInviteTokenReq.Merge(m, src)
+func (m *RegisterReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RegisterReq.Merge(m, src)
 }
-func (m *ParseInviteTokenReq) XXX_Size() int {
-	return xxx_messageInfo_ParseInviteTokenReq.Size(m)
+func (m *RegisterReq) XXX_Size() int {
+	return xxx_messageInfo_RegisterReq.Size(m)
 }
-func (m *ParseInviteTokenReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_ParseInviteTokenReq.DiscardUnknown(m)
+func (m *RegisterReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_RegisterReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ParseInviteTokenReq proto.InternalMessageInfo
+var xxx_messageInfo_RegisterReq proto.InternalMessageInfo
 
-func (m *ParseInviteTokenReq) GetInviteToken() string {
+func (m *RegisterReq) GetEmail() string {
 	if m != nil {
-		return m.InviteToken
+		return m.Email
 	}
 	return ""
 }
 
-type ParseInviteTokenRsp struct {
-	Email                string   `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+func (m *RegisterReq) GetPassword() string {
+	if m != nil {
+		return m.Password
+	}
+	return ""
+}
+
+func (m *RegisterReq) GetMobile() string {
+	if m != nil {
+		return m.Mobile
+	}
+	return ""
+}
+
+func (m *RegisterReq) GetNickname() string {
+	if m != nil {
+		return m.Nickname
+	}
+	return ""
+}
+
+func (m *RegisterReq) GetImageUrl() string {
+	if m != nil {
+		return m.ImageUrl
+	}
+	return ""
+}
+
+type RegisterRsp struct {
+	Status               Status   `protobuf:"varint,1,opt,name=status,proto3,enum=proto.Status" json:"status,omitempty"`
+	UserId               int64    `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ParseInviteTokenRsp) Reset()         { *m = ParseInviteTokenRsp{} }
-func (m *ParseInviteTokenRsp) String() string { return proto.CompactTextString(m) }
-func (*ParseInviteTokenRsp) ProtoMessage()    {}
-func (*ParseInviteTokenRsp) Descriptor() ([]byte, []int) {
+func (m *RegisterRsp) Reset()         { *m = RegisterRsp{} }
+func (m *RegisterRsp) String() string { return proto.CompactTextString(m) }
+func (*RegisterRsp) ProtoMessage()    {}
+func (*RegisterRsp) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{4}
 }
 
-func (m *ParseInviteTokenRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ParseInviteTokenRsp.Unmarshal(m, b)
+func (m *RegisterRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RegisterRsp.Unmarshal(m, b)
 }
-func (m *ParseInviteTokenRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ParseInviteTokenRsp.Marshal(b, m, deterministic)
+func (m *RegisterRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RegisterRsp.Marshal(b, m, deterministic)
 }
-func (m *ParseInviteTokenRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ParseInviteTokenRsp.Merge(m, src)
+func (m *RegisterRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RegisterRsp.Merge(m, src)
 }
-func (m *ParseInviteTokenRsp) XXX_Size() int {
-	return xxx_messageInfo_ParseInviteTokenRsp.Size(m)
+func (m *RegisterRsp) XXX_Size() int {
+	return xxx_messageInfo_RegisterRsp.Size(m)
 }
-func (m *ParseInviteTokenRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_ParseInviteTokenRsp.DiscardUnknown(m)
+func (m *RegisterRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_RegisterRsp.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ParseInviteTokenRsp proto.InternalMessageInfo
+var xxx_messageInfo_RegisterRsp proto.InternalMessageInfo
 
-func (m *ParseInviteTokenRsp) GetEmail() string {
+func (m *RegisterRsp) GetStatus() Status {
 	if m != nil {
-		return m.Email
+		return m.Status
 	}
-	return ""
+	return Status_Empty
 }
 
-type InsertUserReq struct {
+func (m *RegisterRsp) GetUserId() int64 {
+	if m != nil {
+		return m.UserId
+	}
+	return 0
+}
+
+type LoginReq struct {
 	Email                string   `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	Nickname             string   `protobuf:"bytes,3,opt,name=nickname,proto3" json:"nickname,omitempty"`
-	Mobile               string   `protobuf:"bytes,4,opt,name=mobile,proto3" json:"mobile,omitempty"`
-	ImageUrl             string   `protobuf:"bytes,5,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *InsertUserReq) Reset()         { *m = InsertUserReq{} }
-func (m *InsertUserReq) String() string { return proto.CompactTextString(m) }
-func (*InsertUserReq) ProtoMessage()    {}
-func (*InsertUserReq) Descriptor() ([]byte, []int) {
+func (m *LoginReq) Reset()         { *m = LoginReq{} }
+func (m *LoginReq) String() string { return proto.CompactTextString(m) }
+func (*LoginReq) ProtoMessage()    {}
+func (*LoginReq) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{5}
 }
 
-func (m *InsertUserReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InsertUserReq.Unmarshal(m, b)
+func (m *LoginReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginReq.Unmarshal(m, b)
 }
-func (m *InsertUserReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InsertUserReq.Marshal(b, m, deterministic)
+func (m *LoginReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginReq.Marshal(b, m, deterministic)
 }
-func (m *InsertUserReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InsertUserReq.Merge(m, src)
+func (m *LoginReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginReq.Merge(m, src)
 }
-func (m *InsertUserReq) XXX_Size() int {
-	return xxx_messageInfo_InsertUserReq.Size(m)
+func (m *LoginReq) XXX_Size() int {
+	return xxx_messageInfo_LoginReq.Size(m)
 }
-func (m *InsertUserReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_InsertUserReq.DiscardUnknown(m)
+func (m *LoginReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_InsertUserReq proto.InternalMessageInfo
+var xxx_messageInfo_LoginReq proto.InternalMessageInfo
 
-func (m *InsertUserReq) GetEmail() string {
+func (m *LoginReq) GetEmail() string {
 	if m != nil {
 		return m.Email
 	}
 	return ""
 }
 
-func (m *InsertUserReq) GetPassword() string {
+func (m *LoginReq) GetPassword() string {
 	if m != nil {
 		return m.Password
 	}
 	return ""
 }
 
-func (m *InsertUserReq) GetNickname() string {
-	if m != nil {
-		return m.Nickname
-	}
-	return ""
-}
-
-func (m *InsertUserReq) GetMobile() string {
-	if m != nil {
-		return m.Mobile
-	}
-	return ""
-}
-
-func (m *InsertUserReq) GetImageUrl() string {
-	if m != nil {
-		return m.ImageUrl
-	}
-	return ""
-}
-
-type InsertUserRsp struct {
-	UserId               int64    `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+type LoginRsp struct {
+	Status               Status   `protobuf:"varint,1,opt,name=status,proto3,enum=proto.Status" json:"status,omitempty"`
+	AuthToken            string   `protobuf:"bytes,2,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *InsertUserRsp) Reset()         { *m = InsertUserRsp{} }
-func (m *InsertUserRsp) String() string { return proto.CompactTextString(m) }
-func (*InsertUserRsp) ProtoMessage()    {}
-func (*InsertUserRsp) Descriptor() ([]byte, []int) {
+func (m *LoginRsp) Reset()         { *m = LoginRsp{} }
+func (m *LoginRsp) String() string { return proto.CompactTextString(m) }
+func (*LoginRsp) ProtoMessage()    {}
+func (*LoginRsp) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{6}
 }
 
-func (m *InsertUserRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InsertUserRsp.Unmarshal(m, b)
+func (m *LoginRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginRsp.Unmarshal(m, b)
 }
-func (m *InsertUserRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InsertUserRsp.Marshal(b, m, deterministic)
+func (m *LoginRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginRsp.Marshal(b, m, deterministic)
 }
-func (m *InsertUserRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InsertUserRsp.Merge(m, src)
+func (m *LoginRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginRsp.Merge(m, src)
 }
-func (m *InsertUserRsp) XXX_Size() int {
-	return xxx_messageInfo_InsertUserRsp.Size(m)
+func (m *LoginRsp) XXX_Size() int {
+	return xxx_messageInfo_LoginRsp.Size(m)
 }
-func (m *InsertUserRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_InsertUserRsp.DiscardUnknown(m)
+func (m *LoginRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginRsp.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_InsertUserRsp proto.InternalMessageInfo
+var xxx_messageInfo_LoginRsp proto.InternalMessageInfo
 
-func (m *InsertUserRsp) GetUserId() int64 {
+func (m *LoginRsp) GetStatus() Status {
 	if m != nil {
-		return m.UserId
+		return m.Status
 	}
-	return 0
+	return Status_Empty
 }
 
-type GetAuthTokenReq struct {
-	Email                string   `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+func (m *LoginRsp) GetAuthToken() string {
+	if m != nil {
+		return m.AuthToken
+	}
+	return ""
+}
+
+type LogoutReq struct {
+	AuthToken            string   `protobuf:"bytes,1,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetAuthTokenReq) Reset()         { *m = GetAuthTokenReq{} }
-func (m *GetAuthTokenReq) String() string { return proto.CompactTextString(m) }
-func (*GetAuthTokenReq) ProtoMessage()    {}
-func (*GetAuthTokenReq) Descriptor() ([]byte, []int) {
+func (m *LogoutReq) Reset()         { *m = LogoutReq{} }
+func (m *LogoutReq) String() string { return proto.CompactTextString(m) }
+func (*LogoutReq) ProtoMessage()    {}
+func (*LogoutReq) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{7}
 }
 
-func (m *GetAuthTokenReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetAuthTokenReq.Unmarshal(m, b)
+func (m *LogoutReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LogoutReq.Unmarshal(m, b)
 }
-func (m *GetAuthTokenReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetAuthTokenReq.Marshal(b, m, deterministic)
+func (m *LogoutReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LogoutReq.Marshal(b, m, deterministic)
 }
-func (m *GetAuthTokenReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetAuthTokenReq.Merge(m, src)
+func (m *LogoutReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LogoutReq.Merge(m, src)
 }
-func (m *GetAuthTokenReq) XXX_Size() int {
-	return xxx_messageInfo_GetAuthTokenReq.Size(m)
+func (m *LogoutReq) XXX_Size() int {
+	return xxx_messageInfo_LogoutReq.Size(m)
 }
-func (m *GetAuthTokenReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetAuthTokenReq.DiscardUnknown(m)
+func (m *LogoutReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_LogoutReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetAuthTokenReq proto.InternalMessageInfo
+var xxx_messageInfo_LogoutReq proto.InternalMessageInfo
 
-func (m *GetAuthTokenReq) GetEmail() string {
+func (m *LogoutReq) GetAuthToken() string {
 	if m != nil {
-		return m.Email
+		return m.AuthToken
 	}
 	return ""
 }
 
-func (m *GetAuthTokenReq) GetPassword() string {
-	if m != nil {
-		return m.Password
-	}
-	return ""
-}
-
-type GetAuthTokenRsp struct {
-	AuthToken            string   `protobuf:"bytes,1,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
+type LogoutRsp struct {
+	Status               Status   `protobuf:"varint,1,opt,name=status,proto3,enum=proto.Status" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetAuthTokenRsp) Reset()         { *m = GetAuthTokenRsp{} }
-func (m *GetAuthTokenRsp) String() string { return proto.CompactTextString(m) }
-func (*GetAuthTokenRsp) ProtoMessage()    {}
-func (*GetAuthTokenRsp) Descriptor() ([]byte, []int) {
+func (m *LogoutRsp) Reset()         { *m = LogoutRsp{} }
+func (m *LogoutRsp) String() string { return proto.CompactTextString(m) }
+func (*LogoutRsp) ProtoMessage()    {}
+func (*LogoutRsp) Descriptor() ([]byte, []int) {
 	return fileDescriptor_116e343673f7ffaf, []int{8}
 }
 
-func (m *GetAuthTokenRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetAuthTokenRsp.Unmarshal(m, b)
+func (m *LogoutRsp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LogoutRsp.Unmarshal(m, b)
 }
-func (m *GetAuthTokenRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetAuthTokenRsp.Marshal(b, m, deterministic)
+func (m *LogoutRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LogoutRsp.Marshal(b, m, deterministic)
 }
-func (m *GetAuthTokenRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetAuthTokenRsp.Merge(m, src)
+func (m *LogoutRsp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LogoutRsp.Merge(m, src)
 }
-func (m *GetAuthTokenRsp) XXX_Size() int {
-	return xxx_messageInfo_GetAuthTokenRsp.Size(m)
+func (m *LogoutRsp) XXX_Size() int {
+	return xxx_messageInfo_LogoutRsp.Size(m)
 }
-func (m *GetAuthTokenRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetAuthTokenRsp.DiscardUnknown(m)
+func (m *LogoutRsp) XXX_DiscardUnknown() {
+	xxx_messageInfo_LogoutRsp.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetAuthTokenRsp proto.InternalMessageInfo
+var xxx_messageInfo_LogoutRsp proto.InternalMessageInfo
 
-func (m *GetAuthTokenRsp) GetAuthToken() string {
+func (m *LogoutRsp) GetStatus() Status {
 	if m != nil {
-		return m.AuthToken
+		return m.Status
 	}
-	return ""
+	return Status_Empty
 }
-
-type VerifyAuthTokenReq struct {
-	AuthToken            string   `protobuf:"bytes,1,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *VerifyAuthTokenReq) Reset()         { *m = VerifyAuthTokenReq{} }
-func (m *VerifyAuthTokenReq) String() string { return proto.CompactTextString(m) }
-func (*VerifyAuthTokenReq) ProtoMessage()    {}
-func (*VerifyAuthTokenReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{9}
-}
-
-func (m *VerifyAuthTokenReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_VerifyAuthTokenReq.Unmarshal(m, b)
-}
-func (m *VerifyAuthTokenReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_VerifyAuthTokenReq.Marshal(b, m, deterministic)
-}
-func (m *VerifyAuthTokenReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VerifyAuthTokenReq.Merge(m, src)
-}
-func (m *VerifyAuthTokenReq) XXX_Size() int {
-	return xxx_messageInfo_VerifyAuthTokenReq.Size(m)
-}
-func (m *VerifyAuthTokenReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_VerifyAuthTokenReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VerifyAuthTokenReq proto.InternalMessageInfo
-
-func (m *VerifyAuthTokenReq) GetAuthToken() string {
-	if m != nil {
-		return m.AuthToken
-	}
-	return ""
-}
-
-type VerifyAuthTokenRsp struct {
-	UserId               int64    `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email                string   `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Mobile               string   `protobuf:"bytes,3,opt,name=mobile,proto3" json:"mobile,omitempty"`
-	Nickname             string   `protobuf:"bytes,4,opt,name=nickname,proto3" json:"nickname,omitempty"`
-	ImageUrl             string   `protobuf:"bytes,5,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	FreshToken           string   `protobuf:"bytes,6,opt,name=fresh_token,json=freshToken,proto3" json:"fresh_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *VerifyAuthTokenRsp) Reset()         { *m = VerifyAuthTokenRsp{} }
-func (m *VerifyAuthTokenRsp) String() string { return proto.CompactTextString(m) }
-func (*VerifyAuthTokenRsp) ProtoMessage()    {}
-func (*VerifyAuthTokenRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{10}
-}
-
-func (m *VerifyAuthTokenRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_VerifyAuthTokenRsp.Unmarshal(m, b)
-}
-func (m *VerifyAuthTokenRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_VerifyAuthTokenRsp.Marshal(b, m, deterministic)
-}
-func (m *VerifyAuthTokenRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VerifyAuthTokenRsp.Merge(m, src)
-}
-func (m *VerifyAuthTokenRsp) XXX_Size() int {
-	return xxx_messageInfo_VerifyAuthTokenRsp.Size(m)
-}
-func (m *VerifyAuthTokenRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_VerifyAuthTokenRsp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VerifyAuthTokenRsp proto.InternalMessageInfo
-
-func (m *VerifyAuthTokenRsp) GetUserId() int64 {
-	if m != nil {
-		return m.UserId
-	}
-	return 0
-}
-
-func (m *VerifyAuthTokenRsp) GetEmail() string {
-	if m != nil {
-		return m.Email
-	}
-	return ""
-}
-
-func (m *VerifyAuthTokenRsp) GetMobile() string {
-	if m != nil {
-		return m.Mobile
-	}
-	return ""
-}
-
-func (m *VerifyAuthTokenRsp) GetNickname() string {
-	if m != nil {
-		return m.Nickname
-	}
-	return ""
-}
-
-func (m *VerifyAuthTokenRsp) GetImageUrl() string {
-	if m != nil {
-		return m.ImageUrl
-	}
-	return ""
-}
-
-func (m *VerifyAuthTokenRsp) GetFreshToken() string {
-	if m != nil {
-		return m.FreshToken
-	}
-	return ""
-}
-
-type CancelAuthTokenReq struct {
-	AuthToken            string   `protobuf:"bytes,1,opt,name=auth_token,json=authToken,proto3" json:"auth_token,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *CancelAuthTokenReq) Reset()         { *m = CancelAuthTokenReq{} }
-func (m *CancelAuthTokenReq) String() string { return proto.CompactTextString(m) }
-func (*CancelAuthTokenReq) ProtoMessage()    {}
-func (*CancelAuthTokenReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{11}
-}
-
-func (m *CancelAuthTokenReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CancelAuthTokenReq.Unmarshal(m, b)
-}
-func (m *CancelAuthTokenReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CancelAuthTokenReq.Marshal(b, m, deterministic)
-}
-func (m *CancelAuthTokenReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CancelAuthTokenReq.Merge(m, src)
-}
-func (m *CancelAuthTokenReq) XXX_Size() int {
-	return xxx_messageInfo_CancelAuthTokenReq.Size(m)
-}
-func (m *CancelAuthTokenReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_CancelAuthTokenReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CancelAuthTokenReq proto.InternalMessageInfo
-
-func (m *CancelAuthTokenReq) GetAuthToken() string {
-	if m != nil {
-		return m.AuthToken
-	}
-	return ""
-}
-
-type CancelAuthTokenRsp struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *CancelAuthTokenRsp) Reset()         { *m = CancelAuthTokenRsp{} }
-func (m *CancelAuthTokenRsp) String() string { return proto.CompactTextString(m) }
-func (*CancelAuthTokenRsp) ProtoMessage()    {}
-func (*CancelAuthTokenRsp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_116e343673f7ffaf, []int{12}
-}
-
-func (m *CancelAuthTokenRsp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CancelAuthTokenRsp.Unmarshal(m, b)
-}
-func (m *CancelAuthTokenRsp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CancelAuthTokenRsp.Marshal(b, m, deterministic)
-}
-func (m *CancelAuthTokenRsp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CancelAuthTokenRsp.Merge(m, src)
-}
-func (m *CancelAuthTokenRsp) XXX_Size() int {
-	return xxx_messageInfo_CancelAuthTokenRsp.Size(m)
-}
-func (m *CancelAuthTokenRsp) XXX_DiscardUnknown() {
-	xxx_messageInfo_CancelAuthTokenRsp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CancelAuthTokenRsp proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*User)(nil), "proto.User")
-	proto.RegisterType((*InviteUserReq)(nil), "proto.InviteUserReq")
-	proto.RegisterType((*InviteUserRsp)(nil), "proto.InviteUserRsp")
-	proto.RegisterType((*ParseInviteTokenReq)(nil), "proto.ParseInviteTokenReq")
-	proto.RegisterType((*ParseInviteTokenRsp)(nil), "proto.ParseInviteTokenRsp")
-	proto.RegisterType((*InsertUserReq)(nil), "proto.InsertUserReq")
-	proto.RegisterType((*InsertUserRsp)(nil), "proto.InsertUserRsp")
-	proto.RegisterType((*GetAuthTokenReq)(nil), "proto.GetAuthTokenReq")
-	proto.RegisterType((*GetAuthTokenRsp)(nil), "proto.GetAuthTokenRsp")
-	proto.RegisterType((*VerifyAuthTokenReq)(nil), "proto.VerifyAuthTokenReq")
-	proto.RegisterType((*VerifyAuthTokenRsp)(nil), "proto.VerifyAuthTokenRsp")
-	proto.RegisterType((*CancelAuthTokenReq)(nil), "proto.CancelAuthTokenReq")
-	proto.RegisterType((*CancelAuthTokenRsp)(nil), "proto.CancelAuthTokenRsp")
+	proto.RegisterEnum("proto.Status", Status_name, Status_value)
+	proto.RegisterType((*InviteReq)(nil), "proto.InviteReq")
+	proto.RegisterType((*InviteRsp)(nil), "proto.InviteRsp")
+	proto.RegisterType((*UserSecret)(nil), "proto.UserSecret")
+	proto.RegisterType((*RegisterReq)(nil), "proto.RegisterReq")
+	proto.RegisterType((*RegisterRsp)(nil), "proto.RegisterRsp")
+	proto.RegisterType((*LoginReq)(nil), "proto.LoginReq")
+	proto.RegisterType((*LoginRsp)(nil), "proto.LoginRsp")
+	proto.RegisterType((*LogoutReq)(nil), "proto.LogoutReq")
+	proto.RegisterType((*LogoutRsp)(nil), "proto.LogoutRsp")
 }
 
 func init() { proto.RegisterFile("user.proto", fileDescriptor_116e343673f7ffaf) }
 
 var fileDescriptor_116e343673f7ffaf = []byte{
-	// 665 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xdf, 0x6e, 0xd3, 0x3e,
-	0x14, 0xfe, 0xa5, 0xff, 0xb6, 0x9e, 0xb5, 0xeb, 0x7e, 0x66, 0xda, 0x4c, 0x10, 0x62, 0x04, 0x81,
-	0x2a, 0x90, 0x26, 0xb4, 0xdd, 0x20, 0xb8, 0x61, 0xda, 0x24, 0x54, 0x69, 0xd2, 0xa6, 0x8e, 0x71,
-	0x1b, 0x79, 0xf5, 0xd9, 0x66, 0x35, 0x4d, 0x82, 0xed, 0x0e, 0x71, 0xcb, 0x23, 0xf0, 0x12, 0x3c,
-	0x01, 0xef, 0x87, 0x6c, 0x27, 0x6d, 0x93, 0x36, 0x83, 0x5d, 0x25, 0xe7, 0xfb, 0xce, 0x77, 0x7c,
-	0x6c, 0x7f, 0x3e, 0x00, 0x53, 0x85, 0x72, 0x3f, 0x95, 0x89, 0x4e, 0x48, 0xd3, 0x7e, 0x82, 0x1f,
-	0x0d, 0x68, 0x5c, 0x2a, 0x94, 0x64, 0x13, 0x6a, 0x82, 0x53, 0x6f, 0xcf, 0xeb, 0xd7, 0x87, 0x35,
-	0xc1, 0xc9, 0x36, 0x34, 0x71, 0xc2, 0x44, 0x44, 0x6b, 0x7b, 0x5e, 0xbf, 0x3d, 0x74, 0x01, 0xf1,
-	0x61, 0x3d, 0x65, 0x4a, 0x7d, 0x4b, 0x24, 0xa7, 0x75, 0x4b, 0xcc, 0x62, 0xf2, 0x02, 0xba, 0xf9,
-	0x7f, 0xa8, 0x58, 0xa4, 0x69, 0xc3, 0x26, 0x74, 0x72, 0xf0, 0x82, 0x45, 0x9a, 0xec, 0x40, 0x6b,
-	0x92, 0x5c, 0x89, 0x08, 0x69, 0xd3, 0xb2, 0x59, 0x64, 0x0a, 0xc7, 0x62, 0x34, 0x8e, 0xd9, 0x04,
-	0x69, 0xcb, 0x15, 0xce, 0x63, 0xf2, 0x04, 0xda, 0x62, 0xc2, 0x6e, 0x30, 0x9c, 0xca, 0x88, 0xae,
-	0x39, 0xd2, 0x02, 0x97, 0x32, 0x22, 0xcf, 0x60, 0x43, 0xa8, 0x90, 0xa5, 0xa9, 0x4c, 0xee, 0x90,
-	0xd3, 0xf5, 0x3d, 0xaf, 0xdf, 0x1c, 0x82, 0x50, 0x47, 0x19, 0x62, 0xd5, 0x2a, 0x8c, 0x92, 0xd1,
-	0x18, 0x39, 0x6d, 0x5b, 0x7a, 0x5d, 0xa8, 0x53, 0x1b, 0x93, 0xa7, 0x00, 0x42, 0x85, 0x1c, 0x23,
-	0xd4, 0xc8, 0x29, 0x58, 0xb6, 0x2d, 0xd4, 0x89, 0x03, 0xc8, 0x2b, 0xe8, 0x45, 0x4c, 0xe9, 0x30,
-	0x4a, 0x6e, 0x44, 0x1c, 0x72, 0xa6, 0x91, 0x6e, 0xd8, 0xf5, 0xbb, 0x06, 0x3e, 0x35, 0xe8, 0x09,
-	0xd3, 0x48, 0x3e, 0x80, 0x6f, 0xf3, 0x66, 0xfb, 0x1f, 0xdd, 0xb2, 0xf8, 0x06, 0xb9, 0x93, 0x74,
-	0xac, 0x64, 0xd7, 0x64, 0x9c, 0x67, 0x09, 0xc7, 0x8e, 0xb7, 0xe2, 0xd7, 0xf0, 0x7f, 0xb6, 0xc8,
-	0x68, 0x9c, 0x4c, 0xb5, 0xd3, 0x74, 0xad, 0xa6, 0xe7, 0x96, 0xb1, 0xb8, 0xcd, 0xdd, 0x81, 0x96,
-	0xc4, 0x09, 0x93, 0x63, 0xba, 0xe9, 0x8e, 0xcf, 0x45, 0x66, 0x1f, 0x23, 0x89, 0x4c, 0x23, 0x0f,
-	0x93, 0x98, 0xf6, 0x2c, 0xd7, 0xce, 0x90, 0xb3, 0xd8, 0xd0, 0xd3, 0x94, 0xe7, 0xf4, 0x96, 0xa3,
-	0x33, 0xe4, 0x2c, 0x0e, 0x5e, 0x42, 0x77, 0x10, 0xdf, 0x09, 0x8d, 0xc6, 0x09, 0x43, 0xfc, 0x3a,
-	0xbf, 0x7c, 0x6f, 0xe1, 0xf2, 0x83, 0x83, 0x42, 0x9a, 0x4a, 0xc9, 0x73, 0xe8, 0x08, 0x0b, 0x84,
-	0x3a, 0x19, 0x63, 0x9c, 0x65, 0x6f, 0x38, 0xec, 0xb3, 0x81, 0x82, 0x77, 0xf0, 0xe8, 0x9c, 0x49,
-	0x85, 0x83, 0x39, 0x66, 0x16, 0xf8, 0x07, 0xe5, 0x9b, 0x15, 0x4a, 0x95, 0x56, 0xb4, 0xf6, 0xd3,
-	0x33, 0xbd, 0x29, 0x94, 0xfa, 0xde, 0x2d, 0x14, 0xfc, 0x5b, 0x2b, 0xf9, 0x77, 0xd1, 0x82, 0xf5,
-	0x92, 0x05, 0xe7, 0xb6, 0x6d, 0x14, 0x6c, 0x5b, 0xb0, 0x66, 0xb3, 0x68, 0xcd, 0xa0, 0x5f, 0xe8,
-	0x49, 0xa5, 0x64, 0x17, 0xd6, 0xcc, 0x0b, 0x0c, 0x67, 0x0f, 0xad, 0x65, 0xc2, 0x01, 0x0f, 0x8e,
-	0xa1, 0xf7, 0x09, 0xf5, 0xd1, 0x54, 0xdf, 0xce, 0x4e, 0xe8, 0xc1, 0xfd, 0x07, 0x6f, 0x4b, 0x45,
-	0x54, 0x6a, 0xee, 0x9d, 0x4d, 0xf5, 0x6d, 0xe1, 0x90, 0xdb, 0x2c, 0xcf, 0x08, 0x0e, 0x81, 0x7c,
-	0x41, 0x29, 0xae, 0xbf, 0x17, 0x56, 0xfe, 0x8b, 0xe8, 0xb7, 0xb7, 0xac, 0xba, 0x67, 0x6f, 0x15,
-	0x83, 0x64, 0x7e, 0xa0, 0xf5, 0xca, 0x39, 0xd0, 0xb8, 0x6f, 0x0e, 0x34, 0x97, 0xe7, 0xc0, 0xb5,
-	0x44, 0x95, 0xb7, 0xed, 0x66, 0x08, 0x58, 0x68, 0xb6, 0xd9, 0x63, 0x16, 0x8f, 0x30, 0x7a, 0xc8,
-	0x66, 0xb7, 0x97, 0x45, 0x2a, 0x3d, 0xf8, 0x55, 0x87, 0x35, 0x73, 0xa7, 0x17, 0xf2, 0x8e, 0xbc,
-	0x07, 0x98, 0x3f, 0x0a, 0xb2, 0xed, 0xa6, 0xeb, 0x7e, 0xe1, 0x39, 0xf9, 0x2b, 0x50, 0x95, 0x06,
-	0xff, 0x91, 0x53, 0xd8, 0x2a, 0x5b, 0x9c, 0xf8, 0x59, 0xee, 0x8a, 0x57, 0xe3, 0x57, 0x72, 0xb6,
-	0x9a, 0xed, 0x24, 0xb7, 0xdb, 0x42, 0x27, 0x0b, 0xaf, 0xc2, 0x5f, 0x81, 0x5a, 0xed, 0x47, 0xe8,
-	0x2c, 0x7a, 0x87, 0xec, 0x64, 0x79, 0x25, 0x57, 0xfa, 0x2b, 0x71, 0x5b, 0x61, 0x00, 0xbd, 0x92,
-	0x2b, 0xc8, 0xe3, 0x2c, 0x79, 0xd9, 0x63, 0x7e, 0x15, 0x95, 0x97, 0x2a, 0x1d, 0xfa, 0xac, 0xd4,
-	0xf2, 0x0d, 0xfa, 0x55, 0x94, 0x29, 0x75, 0xd5, 0xb2, 0xdc, 0xe1, 0x9f, 0x00, 0x00, 0x00, 0xff,
-	0xff, 0x8c, 0xed, 0xd7, 0xdd, 0xfa, 0x06, 0x00, 0x00,
+	// 483 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x93, 0xdf, 0x6e, 0xd3, 0x30,
+	0x14, 0xc6, 0x97, 0x76, 0xc9, 0x9a, 0xb3, 0x96, 0x85, 0xa3, 0x09, 0xa2, 0x20, 0x24, 0x16, 0x84,
+	0x84, 0x86, 0xd4, 0x8b, 0xc2, 0x25, 0xb7, 0x45, 0xaa, 0xd8, 0xa0, 0x4a, 0xa9, 0xb8, 0xac, 0xbc,
+	0xc5, 0x0a, 0xd6, 0x92, 0x38, 0xd8, 0xce, 0x80, 0xb7, 0x00, 0x24, 0xde, 0x82, 0x3f, 0xaf, 0x01,
+	0x6f, 0x85, 0x6c, 0x27, 0x61, 0x2d, 0x02, 0x55, 0xbb, 0x4a, 0xce, 0xef, 0x7c, 0xc7, 0x3e, 0x3e,
+	0x9f, 0x0d, 0x50, 0x4b, 0x2a, 0xc6, 0x95, 0xe0, 0x8a, 0xa3, 0x6b, 0x3e, 0xf1, 0x11, 0xf8, 0xb3,
+	0xf2, 0x92, 0x29, 0x9a, 0xd0, 0xb7, 0x78, 0x08, 0x2e, 0x2d, 0x08, 0xcb, 0x43, 0xe7, 0x9e, 0xf3,
+	0xd0, 0x4f, 0x6c, 0x10, 0x2f, 0x3b, 0x89, 0xac, 0xf0, 0x01, 0x78, 0x52, 0x11, 0x55, 0x4b, 0xa3,
+	0xb9, 0x31, 0x19, 0xd9, 0xe5, 0xc6, 0x0b, 0x03, 0x93, 0x26, 0x89, 0x47, 0x30, 0x64, 0xa6, 0x66,
+	0xa5, 0xf8, 0x05, 0x2d, 0xc3, 0x9e, 0x59, 0x70, 0xdf, 0xb2, 0x57, 0x1a, 0xc5, 0xa7, 0x00, 0x4b,
+	0x49, 0xc5, 0x82, 0x9e, 0x0b, 0xaa, 0x30, 0x82, 0x41, 0x45, 0xa4, 0x7c, 0xc7, 0x45, 0xda, 0x88,
+	0xbb, 0x18, 0xef, 0xc3, 0xa8, 0xfd, 0x5f, 0x49, 0x92, 0xab, 0xb0, 0x6f, 0x04, 0xc3, 0x16, 0x2e,
+	0x48, 0xae, 0xe2, 0x8f, 0x0e, 0xec, 0x27, 0x34, 0x63, 0x52, 0x51, 0xf1, 0xcf, 0xb3, 0xfc, 0x77,
+	0x9b, 0x5b, 0xe0, 0x15, 0xfc, 0x8c, 0xe5, 0x34, 0xdc, 0x35, 0x99, 0x26, 0xd2, 0x35, 0x25, 0x3b,
+	0xbf, 0x28, 0x49, 0x41, 0x43, 0xd7, 0xd6, 0xb4, 0x31, 0xde, 0x01, 0x9f, 0x15, 0x24, 0xa3, 0xab,
+	0x5a, 0xe4, 0xa1, 0x67, 0x93, 0x06, 0x2c, 0x45, 0x1e, 0x9f, 0x5e, 0xe9, 0x68, 0xfb, 0xd1, 0xdd,
+	0x86, 0x3d, 0x6d, 0xd3, 0x8a, 0xd9, 0x0e, 0xfb, 0x89, 0xa7, 0xc3, 0x59, 0x1a, 0x3f, 0x85, 0xc1,
+	0x09, 0xcf, 0x58, 0x79, 0xad, 0xd3, 0xc5, 0xf3, 0xb6, 0x7a, 0xfb, 0x4e, 0xee, 0x02, 0x90, 0x5a,
+	0xbd, 0x59, 0xb3, 0xd0, 0xd7, 0xc4, 0x1a, 0x78, 0x0c, 0xfe, 0x09, 0xcf, 0x78, 0xad, 0x74, 0x43,
+	0xeb, 0x5a, 0x67, 0x53, 0x3b, 0xe9, 0xb4, 0x5b, 0x6f, 0x7f, 0xfc, 0xc5, 0x01, 0xcf, 0x22, 0xf4,
+	0xc1, 0x9d, 0x16, 0x95, 0xfa, 0x10, 0xec, 0xe0, 0x1e, 0xf4, 0x5e, 0x3e, 0x0f, 0x7e, 0x3a, 0x78,
+	0x13, 0x86, 0x73, 0x22, 0x48, 0x31, 0x2b, 0x2f, 0x49, 0xce, 0xd2, 0xe0, 0x6b, 0x4f, 0xa3, 0xa9,
+	0x1e, 0x44, 0x8b, 0xbe, 0xf5, 0xf0, 0x10, 0x0e, 0x0c, 0x6a, 0x8d, 0xa0, 0x69, 0xf0, 0xfd, 0x0f,
+	0x5d, 0xd0, 0x32, 0x7d, 0x46, 0x58, 0x4e, 0xd3, 0xe0, 0x87, 0x29, 0xd7, 0x37, 0xf2, 0x05, 0x57,
+	0xd3, 0xf7, 0x4c, 0xaa, 0xe0, 0x53, 0x1f, 0x11, 0x46, 0xf3, 0x66, 0x82, 0xaf, 0x05, 0x2f, 0xb3,
+	0xe0, 0x73, 0x7f, 0xf2, 0xcb, 0x81, 0x5d, 0xad, 0xc3, 0x31, 0x78, 0xf6, 0x61, 0x60, 0xd0, 0x9c,
+	0xa0, 0x7b, 0x4a, 0xd1, 0x06, 0x91, 0x55, 0xbc, 0x83, 0x4f, 0x60, 0xd0, 0xb6, 0x81, 0xd8, 0xe4,
+	0xaf, 0x5c, 0xd9, 0xe8, 0x2f, 0x66, 0xaa, 0x1e, 0x81, 0x6b, 0x8c, 0xc3, 0x83, 0x26, 0xdd, 0x5e,
+	0x82, 0x68, 0x1d, 0x18, 0xf1, 0x18, 0x3c, 0x3b, 0xe7, 0xae, 0xa5, 0xce, 0xa2, 0x68, 0x83, 0x68,
+	0xfd, 0x99, 0x67, 0xd0, 0xe3, 0xdf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x5d, 0x29, 0x95, 0x9f, 0x1a,
+	0x04, 0x00, 0x00,
 }

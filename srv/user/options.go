@@ -60,11 +60,10 @@ func initRedis(o *micro.Options) {
 func registerHandler(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
 		log.Log("Register handler")
-		if err := proto.RegisterUserSrvHandler(o.Server,
-			&handler.UserSrvHandler{
-				Model: &model.UserSrvModel{
-					DB:    sql.MysqlDB,
-					Redis: redis.Redis,
+		if err := proto.RegisterUserHandler(o.Server,
+			&handler.User{
+				Model: &model.UserModel{
+					DB: sql.MysqlDB,
 				},
 			}); err != nil {
 			return err

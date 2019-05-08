@@ -2,26 +2,24 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"originals/conf"
+	"mycms/utils"
 	"originals/email"
-	"originals/jwt"
+	tokenProto "originals/srv/token/proto"
 	"originals/srv/user/model"
 	"originals/srv/user/proto"
-	"originals/utils"
-	"sync"
-	"time"
 
-	"github.com/micro/go-log"
+	"shendu.com/errors"
+
+	"github.com/micro/go-micro/client"
 )
 
-type UserSrvHandler struct {
-	freshTokenMu sync.Mutex
-	Model        *model.UserSrvModel
+type User struct {
+	Model *model.UserModel
+	Cli   client.Client
 }
 
-const signUpEmailBody = `
+const registerEmailBody = `
 <!doctype html>
 <html>
 	<body>
@@ -39,223 +37,131 @@ const signUpEmailBody = `
 </html>
 `
 
-const (
-	// Reg patterns
-	RegEmail    = `^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$`
-	RegPassword = `^[a-zA-Z0-9]{4,16}$`
-	RegNickname = `^[a-zA-Z0-9_]{3,16}$`
-)
-
-var (
-	// Errors
-	ErrInvalidEmail    = errors.New("invalid email")
-	ErrEmailExist      = errors.New("email has been sign up")
-	ErrEmptySecret     = errors.New("jwt secret key is empty")
-	ErrInvalidPassword = errors.New("invalid password")
-	ErrInvalidNickname = errors.New("invalid nickname")
-	ErrUserNotExist    = errors.New("user not exist")
-	ErrPasswordWrong   = errors.New("wrong password")
-	ErrTokenCanceled   = errors.New("token has been canceled")
-)
-
-// InviteUser
-func (hdlr *UserSrvHandler) InviteUser(ctx context.Context, req *proto.InviteUserReq, rsp *proto.InviteUserRsp) error {
-	log.Log("Received User.StartEmail request")
-
-	// Verify email format
-	if match := utils.RegMatch(req.Email, RegEmail); !match {
-		return ErrInvalidEmail
+// Invite
+func (u *User) Invite(ctx context.Context, req *proto.InviteReq, rsp *proto.InviteRsp) error {
+	if req.Email == "" {
+		rsp.Status = proto.Status_ParamInvalid
+		return nil
 	}
-
-	// Check if email has been sign up
-	if emailCount, err := hdlr.Model.CountUserEmail(req.Email); err != nil {
+	if exist, err := u.Model.IsEmailExist(req.Email); err != nil {
 		return err
-	} else if emailCount > 0 {
-		return ErrEmailExist
+	} else if exist {
+		rsp.Status = proto.Status_EmailRegistered
+		return nil
 	}
-
-	// Create sign up token
-	secret := conf.SrvConf["user"].Extra["jwt_secret_invite"]
-	if secret == "" {
-		return ErrEmptySecret
+	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
+	tokenReq := &tokenProto.GetInviteTokenReq{
+		Claims: &tokenProto.InviteClaims{
+			Email: req.Email,
+		},
 	}
-	claims := jwt.EmailClaims{Email: req.Email}
-	claims.StandardClaims.ExpiresAt = time.Now().Add(30 * time.Minute).Unix()
-	tokenStr, err := jwt.CreateToken(claims, secret)
+	tokenRsp, err := tokenCli.GetInviteToken(ctx, tokenReq)
 	if err != nil {
 		return err
 	}
+	if tokenRsp.Status != tokenProto.Status_OK || tokenRsp.Token == "" {
+		return errors.New("get invite token failed")
+	}
+	rsp.InviteToken = tokenRsp.Token
 
-	// Send sign up email
-	mailBody := fmt.Sprintf(signUpEmailBody, tokenStr)
-	signUpMail := &email.Email{
+	mailBody := fmt.Sprintf(registerEmailBody, tokenRsp.Token)
+	registerMail := &email.Email{
 		Recivers: []string{req.Email},
 		Subject:  "Originals-起源-Beta v1.0 注册测试邮件",
 		Body:     mailBody,
 	}
-	if err := email.SendMail(signUpMail); err != nil {
-		return err
+	if err := email.SendMail(registerMail); err != nil {
+		rsp.Status = proto.Status_EmailSendFailed
+		return nil
 	}
-
-	rsp.InviteToken = tokenStr
+	rsp.Status = proto.Status_OK
 	return nil
 }
 
-// ParseInviteToken
-func (hdlr *UserSrvHandler) ParseInviteToken(ctx context.Context, req *proto.ParseInviteTokenReq, rsp *proto.ParseInviteTokenRsp) error {
-	secret := conf.SrvConf["user"].Extra["jwt_secret_invite"]
-	if secret == "" {
-		return ErrEmptySecret
-	}
-	claims := &jwt.EmailClaims{}
-	if err := jwt.ParseToken(req.InviteToken, secret, claims); err != nil {
-		return err
-	}
-	rsp.Email = claims.Email
-	return nil
-}
-
-// InsertUser
-func (hdlr *UserSrvHandler) InsertUser(ctx context.Context, req *proto.InsertUserReq, rsp *proto.InsertUserRsp) error {
-	if err := verifyInsertUser(req); err != nil {
-		return err
+// Register
+func (u *User) Register(ctx context.Context, req *proto.RegisterReq, rsp *proto.RegisterRsp) error {
+	if req.Email == "" {
+		rsp.Status = proto.Status_ParamInvalid
+		return nil
 	}
 	password, salt := utils.Password(req.Password)
-	user := &proto.User{
+	id, err := u.Model.InsertUser(&model.InserUserObj{
 		Email:        req.Email,
 		Password:     password,
 		PasswordSalt: salt,
 		Mobile:       req.Mobile,
 		Nickname:     req.Nickname,
 		ImageUrl:     req.ImageUrl,
-	}
-	id, err := hdlr.Model.InsertUser(user)
+	})
 	if err != nil {
 		return err
 	}
 	if id == 0 {
-		return ErrEmailExist
+		rsp.Status = proto.Status_EmailRegistered
+		return nil
 	}
+	rsp.Status = proto.Status_OK
 	rsp.UserId = id
 	return nil
 }
 
-// GetAuthToken
-func (hdlr *UserSrvHandler) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rsp *proto.GetAuthTokenRsp) error {
-	user, err := hdlr.Model.GetUserByEmail(req.Email)
+// Login
+func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginRsp) error {
+	if req.Email == "" {
+		rsp.Status = proto.Status_ParamInvalid
+		return nil
+	}
+	sUser, err := u.Model.GetUserSecret(req.Email)
 	if err != nil {
 		return err
 	}
-	if user == nil {
-		return ErrUserNotExist
+	if sUser == nil {
+		rsp.Status = proto.Status_UserNotExist
+		return nil
 	}
-	if user.Password != utils.Hash(req.Password, user.PasswordSalt) {
-		return ErrPasswordWrong
+	if req.Password != utils.Hash(sUser.Password, sUser.PasswordSalt) {
+		rsp.Status = proto.Status_PasswordWrong
+		return nil
 	}
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
+
+	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
+	tokenReq := &tokenProto.GetAuthTokenReq{
+		Claims: &tokenProto.AuthClaims{
+			UserId:   sUser.UserId,
+			Email:    sUser.Email,
+			Mobile:   sUser.Mobile,
+			Nickname: sUser.NickName,
+			ImageUrl: sUser.ImageUrl,
+		},
 	}
-	claims := jwt.UserClaims{
-		UserId:   user.Id,
-		Email:    user.Email,
-		Mobile:   user.Mobile,
-		Nickname: user.Nickname,
-		ImageUrl: user.ImageUrl,
-	}
-	claims.ExpiresAt = time.Now().Add(5 * time.Second).Unix()
-	tokenStr, err := jwt.CreateToken(claims, secret)
+	tokenRsp, err := tokenCli.GetAuthToken(ctx, tokenReq)
 	if err != nil {
 		return err
 	}
-	if err := hdlr.Model.UpdateLastLoginDate(user.Id); err != nil {
-		return err
+	if tokenRsp.Status != tokenProto.Status_OK || tokenRsp.Token == "" {
+		return errors.New("get auth token failed")
 	}
-	rsp.AuthToken = tokenStr
+	rsp.AuthToken = tokenRsp.Token
 	return nil
 }
 
-// VerityAuth
-func (hdlr *UserSrvHandler) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenReq, rsp *proto.VerifyAuthTokenRsp) error {
-	if canceled, err := hdlr.Model.IsTokenCanceled(req.AuthToken); err != nil {
-		return err
-	} else if canceled {
-		return ErrTokenCanceled
+// Logout
+func (u *User) Logout(ctx context.Context, req *proto.LogoutReq, rsp *proto.LogoutRsp) error {
+	if req.AuthToken == "" {
+		rsp.Status = proto.Status_PasswordWrong
+		return nil
 	}
-
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
+	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
+	tokenReq := &tokenProto.CancelTokenReq{
+		Token: req.AuthToken,
 	}
-	var claims = &jwt.UserClaims{}
-	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
-		if err != jwt.ErrTokenExpired {
-			return err
-		}
-
-		refreshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(200 * time.Second)
-		if time.Now().After(refreshDeadLine) {
-			return jwt.ErrTokenExpired
-		}
-
-		hdlr.freshTokenMu.Lock()
-		defer hdlr.freshTokenMu.Unlock()
-		if freshToken, err := hdlr.Model.GetFreshToken(req.AuthToken); err == nil {
-			rsp.FreshToken = freshToken
-		} else {
-			if err != model.ErrKeyNotExist {
-				return err
-			}
-			claims.ExpiresAt = time.Now().Add(5 * time.Second).Unix()
-			if freshToken, err := jwt.CreateToken(claims, secret); err != nil {
-				return err
-			} else {
-				if err := hdlr.Model.SetFreshToken(req.AuthToken, freshToken); err != nil {
-					return err
-				}
-				rsp.FreshToken = freshToken
-			}
-		}
-	}
-
-	rsp.UserId = claims.UserId
-	rsp.Email = claims.Email
-	rsp.Mobile = claims.Mobile
-	rsp.Nickname = claims.Nickname
-	rsp.ImageUrl = claims.ImageUrl
-
-	return nil
-}
-
-// CancelAuthToken
-func (hdlr *UserSrvHandler) CancelAuthToken(ctx context.Context, req *proto.CancelAuthTokenReq, rsp *proto.CancelAuthTokenRsp) error {
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
-	}
-	var claims = &jwt.UserClaims{}
-	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
-		if err != jwt.ErrTokenInvalid {
-			return err
-		}
-	}
-	if err := hdlr.Model.CancelToken(req.AuthToken, time.Unix(claims.ExpiresAt, 0)); err != nil {
+	tokenRsp, err := tokenCli.CancelToken(ctx, tokenReq)
+	if err != nil {
 		return err
 	}
-	return nil
-}
-
-// verifyInsertUser
-func verifyInsertUser(req *proto.InsertUserReq) (err error) {
-	switch {
-	case !utils.RegMatch(req.Email, RegEmail):
-		err = ErrInvalidEmail
-	case !utils.RegMatch(req.Password, RegPassword):
-		err = ErrInvalidPassword
-	case !utils.RegMatch(req.Nickname, RegNickname):
-		err = ErrInvalidNickname
-	default:
-		err = nil
+	if tokenRsp.Status != tokenProto.Status_OK {
+		return errors.New("cancel auth token failed")
 	}
-	return
+	rsp.Status = proto.Status_OK
+	return nil
 }
