@@ -2,44 +2,52 @@ package handler
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"originals/conf"
-	"originals/email"
-	"github.com/dgrijalva/jwt-go"
 	"originals/srv/token/model"
 	"originals/srv/token/proto"
-	"originals/utils"
 	"sync"
 	"time"
 
-	"github.com/micro/go-log"
+	"github.com/dgrijalva/jwt-go"
 )
 
-type TokenHandler struct {
+type Token struct {
 	freshTokenMu sync.Mutex
 	Model        *model.TokenModel
 }
 
-
 const (
 	inviteTokenKey = "invite_token_key"
-	authTokenKey = "auth_token_key"
-	inviteTokenExp = 30
-	authTokenExp = 5
-	authTokenRefreshLimit = 5
-	authTokenRefreshLive = 1
+	authTokenKey   = "auth_token_key"
 )
 
-type inviteClaims struct {
-	Email string
+var (
+	inviteTokenLive    = 5 * time.Minute
+	authTokenLive      = 5 * time.Minute
+	authTokenFreshLive = 5 * time.Minute
+)
+
+type inviteTokenClaims struct {
+	Email string `json:"email"`
+	jwt.StandardClaims
+}
+
+type authTokenClaims struct {
+	UserId   int64  `json:"user_id"`
+	Email    string `json:"email"`
+	Mobile   string `json:"mobile"`
+	NickName string `json:"nick_name"`
+	ImageUrl string `json:"image_url"`
 	jwt.StandardClaims
 }
 
 // GetInviteToken
-func (hdlr *TokenHandler) GetInviteToken(ctx context.Context, req *proto.GetInviteTokenReq, rsp *proto.GetInviteTokenRsp) error {
-	var claims = inviteClaims{
+func (t *Token) GetInviteToken(ctx context.Context, req *proto.GetInviteTokenReq, rsp *proto.GetInviteTokenRsp) error {
+	claims := inviteTokenClaims{
 		Email: req.Claims.Email,
+		StandardClaims: jwt.StandardClaims{
+			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: time.Now().Add(inviteTokenLive).Unix(),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString([]byte(inviteTokenKey))
@@ -50,180 +58,133 @@ func (hdlr *TokenHandler) GetInviteToken(ctx context.Context, req *proto.GetInvi
 	return nil
 }
 
-// VerifyInvite
-func (hdlr *TokenHandler) VerifyInvite(ctx context.Context, req *proto.VerifyInviteReq, rsp *proto.VerifyInviteRsp) error {
-	claims := &inviteClaims{}
-	token, err := jwt.ParseWithClaims(req.Token, claims, func(token *jwt.Token) (interface{}, error) {
+// VerifyInviteToken
+func (t *Token) VerifyInviteToken(ctx context.Context, req *proto.VerifyInviteTokenReq, rsp *proto.VerifyInviteTokenRsp) error {
+	claims := inviteTokenClaims{}
+	token, err := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(inviteTokenKey), nil
 	})
-	if err != nil {
-		valiErr := err.(*jwt.ValidationError)
-		if valiErr.Errors == jwt.ValidationErrorExpired {
-			rsp.Status = proto.Status_ErrTokenExpired
-		} else {
-			rsp.Status = proto.Status_ErrTokenInvalid
+	if token != nil {
+		rsp.Claims = &proto.InviteClaims{
+			Email: claims.Email,
 		}
-		return nil
 	}
-	if token == nil || !token.Valid {
-		rsp.Status = proto.Status_ErrTokenInvalid
-		return nil
-	}
-	rsp.Claims.Email = claims.Email
-	return nil
-}
-
-// ParseInviteToken
-func (hdlr *UserSrvHandler) ParseInviteToken(ctx context.Context, req *proto.ParseInviteTokenReq, rsp *proto.ParseInviteTokenRsp) error {
-	secret := conf.SrvConf["user"].Extra["jwt_secret_invite"]
-	if secret == "" {
-		return ErrEmptySecret
-	}
-	claims := &jwt.EmailClaims{}
-
-}
-
-// InsertUser
-func (hdlr *UserSrvHandler) InsertUser(ctx context.Context, req *proto.InsertUserReq, rsp *proto.InsertUserRsp) error {
-	if err := verifyInsertUser(req); err != nil {
-		return err
-	}
-	password, salt := utils.Password(req.Password)
-	user := &proto.User{
-		Email:        req.Email,
-		Password:     password,
-		PasswordSalt: salt,
-		Mobile:       req.Mobile,
-		Nickname:     req.Nickname,
-		ImageUrl:     req.ImageUrl,
-	}
-	id, err := hdlr.Model.InsertUser(user)
 	if err != nil {
-		return err
+		if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
+			rsp.Status = proto.Status_TokenInvalid
+			return nil
+		}
+		rsp.Status = proto.Status_TokenExpired
+		return nil
 	}
-	if id == 0 {
-		return ErrEmailExist
-	}
-	rsp.UserId = id
+	rsp.Status = proto.Status_OK
 	return nil
 }
 
 // GetAuthToken
-func (hdlr *UserSrvHandler) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rsp *proto.GetAuthTokenRsp) error {
-	user, err := hdlr.Model.GetUserByEmail(req.Email)
+func (t *Token) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rsp *proto.GetAuthTokenRsp) error {
+	claims := authTokenClaims{
+		UserId:   req.Claims.UserId,
+		Email:    req.Claims.Email,
+		Mobile:   req.Claims.Mobile,
+		NickName: req.Claims.Nickname,
+		ImageUrl: req.Claims.ImageUrl,
+		StandardClaims: jwt.StandardClaims{
+			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: time.Now().Add(authTokenLive).Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenStr, err := token.SignedString([]byte(inviteTokenKey))
 	if err != nil {
 		return err
 	}
-	if user == nil {
-		return ErrUserNotExist
-	}
-	if user.Password != utils.Hash(req.Password, user.PasswordSalt) {
-		return ErrPasswordWrong
-	}
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
-	}
-	claims := jwt.UserClaims{
-		UserId:   user.Id,
-		Email:    user.Email,
-		Mobile:   user.Mobile,
-		Nickname: user.Nickname,
-		ImageUrl: user.ImageUrl,
-	}
-	claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
-	tokenStr, err := jwt.CreateToken(claims, secret)
-	if err != nil {
-		return err
-	}
-	if err := hdlr.Model.UpdateLastLoginDate(user.Id); err != nil {
-		return err
-	}
-	rsp.AuthToken = tokenStr
+	rsp.Token = tokenStr
 	return nil
 }
 
-// VerityAuth
-func (hdlr *UserSrvHandler) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenReq, rsp *proto.VerifyAuthTokenRsp) error {
-	if canceled, err := hdlr.Model.IsTokenCanceled(req.AuthToken); err != nil {
+// VerifyAuthToken
+func (t *Token) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenReq, rsp *proto.VerifyAuthTokenRsp) error {
+	if canceled, err := t.Model.IsTokenCanceled(req.Token); err != nil {
 		return err
 	} else if canceled {
-		return ErrTokenCanceled
+		rsp.Status = proto.Status_TokenCanceled
+		return nil
 	}
 
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
+	claims := authTokenClaims{}
+	token, err := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(authTokenKey), nil
+	})
+	if token != nil {
+		rsp.Claims = &proto.AuthClaims{
+			UserId:   claims.UserId,
+			Email:    claims.Email,
+			Mobile:   claims.Mobile,
+			Nickname: claims.NickName,
+			ImageUrl: claims.ImageUrl,
+		}
 	}
-	var claims = &jwt.UserClaims{}
-	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
-		if err != jwt.ErrTokenExpired {
+
+	if err == nil {
+		rsp.Status = proto.Status_OK
+		return nil
+	}
+
+	if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
+		rsp.Status = proto.Status_TokenInvalid
+		return nil
+	}
+
+	freshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(authTokenFreshLive)
+	if time.Now().After(freshDeadLine) {
+		rsp.Status = proto.Status_TokenExpired
+		return nil
+	}
+
+	t.freshTokenMu.Lock()
+	defer t.freshTokenMu.Unlock()
+	if freshToken, err := t.Model.GetFreshToken(req.Token); err == nil {
+		rsp.Status = proto.Status_TokenRefreshed
+		rsp.FreshToken = freshToken
+		return nil
+	} else if err == model.ErrKeyNotExist {
+		claims.IssuedAt = time.Now().Unix()
+		claims.ExpiresAt = time.Now().Add(authTokenLive).Unix()
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		freshToken, err := token.SignedString([]byte(authTokenKey))
+		if err != nil {
 			return err
 		}
 
-		refreshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(5 * time.Minute)
-		if time.Now().After(refreshDeadLine) {
-			return jwt.ErrTokenExpired
+		err = t.Model.SetFreshToken(req.Token, freshToken, authTokenFreshLive)
+		if err != nil {
+			return err
 		}
 
-		hdlr.freshTokenMu.Lock()
-		defer hdlr.freshTokenMu.Unlock()
-		if freshToken, err := hdlr.Model.GetFreshToken(req.AuthToken); err == nil {
-			rsp.FreshToken = freshToken
-		} else {
-			if err != model.ErrKeyNotExist {
-				return err
-			}
-			claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
-			if freshToken, err := jwt.CreateToken(claims, secret); err != nil {
-				return err
-			} else {
-				if err := hdlr.Model.SetFreshToken(req.AuthToken, freshToken); err != nil {
-					return err
-				}
-				rsp.FreshToken = freshToken
-			}
-		}
+		rsp.Status = proto.Status_TokenRefreshed
+		rsp.FreshToken = freshToken
+		return nil
+	} else {
+		return err
 	}
-
-	rsp.UserId = claims.UserId
-	rsp.Email = claims.Email
-	rsp.Mobile = claims.Mobile
-	rsp.Nickname = claims.Nickname
-	rsp.ImageUrl = claims.ImageUrl
-
-	return nil
 }
 
 // CancelAuthToken
-func (hdlr *UserSrvHandler) CancelAuthToken(ctx context.Context, req *proto.CancelAuthTokenReq, rsp *proto.CancelAuthTokenRsp) error {
-	secret := conf.SrvConf["user"].Extra["jwt_secret_auth"]
-	if secret == "" {
-		return ErrEmptySecret
+func (t *Token) CancelToken(ctx context.Context, req *proto.CancelTokenReq, rsp *proto.CancelTokenRsp) error {
+	claims := authTokenClaims{}
+	token, _ := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(authTokenKey), nil
+	})
+	if token == nil || !token.Valid {
+		rsp.Status = proto.Status_TokenInvalid
+		return nil
 	}
-	var claims = &jwt.UserClaims{}
-	if err := jwt.ParseToken(req.AuthToken, secret, claims); err != nil {
-		if err != jwt.ErrTokenInvalid {
-			return err
-		}
-	}
-	if err := hdlr.Model.CancelToken(req.AuthToken, time.Unix(claims.ExpiresAt, 0)); err != nil {
+
+	err := t.Model.CancelToken(req.Token, time.Unix(claims.ExpiresAt, 0).Add(authTokenFreshLive))
+	if err != nil {
 		return err
 	}
+	rsp.Status = proto.Status_OK
 	return nil
-}
-
-// verifyInsertUser
-func verifyInsertUser(req *proto.InsertUserReq) (err error) {
-	switch {
-	case !utils.RegMatch(req.Email, RegEmail):
-		err = ErrInvalidEmail
-	case !utils.RegMatch(req.Password, RegPassword):
-		err = ErrInvalidPassword
-	case !utils.RegMatch(req.Nickname, RegNickname):
-		err = ErrInvalidNickname
-	default:
-		err = nil
-	}
-	return
 }

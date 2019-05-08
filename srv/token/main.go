@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"originals/conf"
 
 	"github.com/micro/go-log"
@@ -15,14 +14,11 @@ func main() {
 	}
 
 	// New service
-	srvConf := conf.SrvConf["user"]
-	srvName := fmt.Sprintf("%s.%s", conf.SrvNameSpace, srvConf.Name)
 	service := micro.NewService(
-		initMysqlDB,
 		initRedis,
 		registerHandler,
-		micro.Name(srvName),
-		micro.Version(srvConf.Version),
+		micro.Name("go.micro.srv.token"),
+		micro.Version("v1.0"),
 		sayBye,
 	)
 

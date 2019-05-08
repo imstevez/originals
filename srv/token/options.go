@@ -2,37 +2,13 @@ package main
 
 import (
 	"originals/redis"
-	"originals/sql"
-	"originals/srv/user/handler"
-	"originals/srv/user/model"
-	"originals/srv/user/proto"
+	"originals/srv/token/handler"
+	"originals/srv/token/model"
+	"originals/srv/token/proto"
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
 )
-
-// Initialize mysql database
-func initMysqlDB(o *micro.Options) {
-	o.BeforeStart = append(o.BeforeStart, func() error {
-		log.Log("Initializing mysql database")
-		err := sql.InitMysqlDB()
-		if err != nil {
-			log.Log(err)
-			return err
-		}
-
-		return nil
-	})
-	o.AfterStop = append(o.AfterStop, func() error {
-		log.Log("Close mysql database")
-		if err := sql.MysqlDB.Close(); err != nil {
-			log.Log("Close database failed: " + err.Error())
-			return err
-		}
-		log.Log("Database closed")
-		return nil
-	})
-}
 
 // Initialize redis
 func initRedis(o *micro.Options) {
@@ -59,11 +35,10 @@ func initRedis(o *micro.Options) {
 // Register handler
 func registerHandler(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
-		log.Log("Register handler")
-		if err := proto.RegisterUserSrvHandler(o.Server,
-			&handler.UserSrvHandler{
-				Model: &model.UserSrvModel{
-					DB:    sql.MysqlDB,
+		log.Log("Register token handler")
+		if err := proto.RegisterTokenHandler(o.Server,
+			&handler.Token{
+				Model: &model.TokenModel{
 					Redis: redis.Redis,
 				},
 			}); err != nil {

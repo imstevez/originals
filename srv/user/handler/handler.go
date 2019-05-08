@@ -163,7 +163,7 @@ func (hdlr *UserSrvHandler) GetAuthToken(ctx context.Context, req *proto.GetAuth
 		Nickname: user.Nickname,
 		ImageUrl: user.ImageUrl,
 	}
-	claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+	claims.ExpiresAt = time.Now().Add(5 * time.Second).Unix()
 	tokenStr, err := jwt.CreateToken(claims, secret)
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func (hdlr *UserSrvHandler) VerifyAuthToken(ctx context.Context, req *proto.Veri
 			return err
 		}
 
-		refreshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(5 * time.Minute)
+		refreshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(200 * time.Second)
 		if time.Now().After(refreshDeadLine) {
 			return jwt.ErrTokenExpired
 		}
@@ -206,7 +206,7 @@ func (hdlr *UserSrvHandler) VerifyAuthToken(ctx context.Context, req *proto.Veri
 			if err != model.ErrKeyNotExist {
 				return err
 			}
-			claims.ExpiresAt = time.Now().Add(5 * time.Minute).Unix()
+			claims.ExpiresAt = time.Now().Add(5 * time.Second).Unix()
 			if freshToken, err := jwt.CreateToken(claims, secret); err != nil {
 				return err
 			} else {

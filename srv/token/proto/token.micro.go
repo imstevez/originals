@@ -35,9 +35,10 @@ var _ server.Option
 
 type TokenService interface {
 	GetInviteToken(ctx context.Context, in *GetInviteTokenReq, opts ...client.CallOption) (*GetInviteTokenRsp, error)
-	VerifyInvite(ctx context.Context, in *VerifyInviteReq, opts ...client.CallOption) (*VerifyInviteRsp, error)
+	VerifyInviteToken(ctx context.Context, in *VerifyInviteTokenReq, opts ...client.CallOption) (*VerifyInviteTokenRsp, error)
 	GetAuthToken(ctx context.Context, in *GetAuthTokenReq, opts ...client.CallOption) (*GetAuthTokenRsp, error)
-	VerifyAuth(ctx context.Context, in *VerifyAuthReq, opts ...client.CallOption) (*VerifyAuthRsp, error)
+	VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error)
+	CancelToken(ctx context.Context, in *CancelTokenReq, opts ...client.CallOption) (*CancelTokenRsp, error)
 }
 
 type tokenService struct {
@@ -68,9 +69,9 @@ func (c *tokenService) GetInviteToken(ctx context.Context, in *GetInviteTokenReq
 	return out, nil
 }
 
-func (c *tokenService) VerifyInvite(ctx context.Context, in *VerifyInviteReq, opts ...client.CallOption) (*VerifyInviteRsp, error) {
-	req := c.c.NewRequest(c.name, "Token.VerifyInvite", in)
-	out := new(VerifyInviteRsp)
+func (c *tokenService) VerifyInviteToken(ctx context.Context, in *VerifyInviteTokenReq, opts ...client.CallOption) (*VerifyInviteTokenRsp, error) {
+	req := c.c.NewRequest(c.name, "Token.VerifyInviteToken", in)
+	out := new(VerifyInviteTokenRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -88,9 +89,19 @@ func (c *tokenService) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, op
 	return out, nil
 }
 
-func (c *tokenService) VerifyAuth(ctx context.Context, in *VerifyAuthReq, opts ...client.CallOption) (*VerifyAuthRsp, error) {
-	req := c.c.NewRequest(c.name, "Token.VerifyAuth", in)
-	out := new(VerifyAuthRsp)
+func (c *tokenService) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, opts ...client.CallOption) (*VerifyAuthTokenRsp, error) {
+	req := c.c.NewRequest(c.name, "Token.VerifyAuthToken", in)
+	out := new(VerifyAuthTokenRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tokenService) CancelToken(ctx context.Context, in *CancelTokenReq, opts ...client.CallOption) (*CancelTokenRsp, error) {
+	req := c.c.NewRequest(c.name, "Token.CancelToken", in)
+	out := new(CancelTokenRsp)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -102,17 +113,19 @@ func (c *tokenService) VerifyAuth(ctx context.Context, in *VerifyAuthReq, opts .
 
 type TokenHandler interface {
 	GetInviteToken(context.Context, *GetInviteTokenReq, *GetInviteTokenRsp) error
-	VerifyInvite(context.Context, *VerifyInviteReq, *VerifyInviteRsp) error
+	VerifyInviteToken(context.Context, *VerifyInviteTokenReq, *VerifyInviteTokenRsp) error
 	GetAuthToken(context.Context, *GetAuthTokenReq, *GetAuthTokenRsp) error
-	VerifyAuth(context.Context, *VerifyAuthReq, *VerifyAuthRsp) error
+	VerifyAuthToken(context.Context, *VerifyAuthTokenReq, *VerifyAuthTokenRsp) error
+	CancelToken(context.Context, *CancelTokenReq, *CancelTokenRsp) error
 }
 
 func RegisterTokenHandler(s server.Server, hdlr TokenHandler, opts ...server.HandlerOption) error {
 	type token interface {
 		GetInviteToken(ctx context.Context, in *GetInviteTokenReq, out *GetInviteTokenRsp) error
-		VerifyInvite(ctx context.Context, in *VerifyInviteReq, out *VerifyInviteRsp) error
+		VerifyInviteToken(ctx context.Context, in *VerifyInviteTokenReq, out *VerifyInviteTokenRsp) error
 		GetAuthToken(ctx context.Context, in *GetAuthTokenReq, out *GetAuthTokenRsp) error
-		VerifyAuth(ctx context.Context, in *VerifyAuthReq, out *VerifyAuthRsp) error
+		VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error
+		CancelToken(ctx context.Context, in *CancelTokenReq, out *CancelTokenRsp) error
 	}
 	type Token struct {
 		token
@@ -129,14 +142,18 @@ func (h *tokenHandler) GetInviteToken(ctx context.Context, in *GetInviteTokenReq
 	return h.TokenHandler.GetInviteToken(ctx, in, out)
 }
 
-func (h *tokenHandler) VerifyInvite(ctx context.Context, in *VerifyInviteReq, out *VerifyInviteRsp) error {
-	return h.TokenHandler.VerifyInvite(ctx, in, out)
+func (h *tokenHandler) VerifyInviteToken(ctx context.Context, in *VerifyInviteTokenReq, out *VerifyInviteTokenRsp) error {
+	return h.TokenHandler.VerifyInviteToken(ctx, in, out)
 }
 
 func (h *tokenHandler) GetAuthToken(ctx context.Context, in *GetAuthTokenReq, out *GetAuthTokenRsp) error {
 	return h.TokenHandler.GetAuthToken(ctx, in, out)
 }
 
-func (h *tokenHandler) VerifyAuth(ctx context.Context, in *VerifyAuthReq, out *VerifyAuthRsp) error {
-	return h.TokenHandler.VerifyAuth(ctx, in, out)
+func (h *tokenHandler) VerifyAuthToken(ctx context.Context, in *VerifyAuthTokenReq, out *VerifyAuthTokenRsp) error {
+	return h.TokenHandler.VerifyAuthToken(ctx, in, out)
+}
+
+func (h *tokenHandler) CancelToken(ctx context.Context, in *CancelTokenReq, out *CancelTokenRsp) error {
+	return h.TokenHandler.CancelToken(ctx, in, out)
 }

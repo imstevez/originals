@@ -4,15 +4,19 @@ package proto;
 
 service Token {
 	rpc GetInviteToken(GetInviteTokenReq) returns (GetInviteTokenRsp) {};
-    rpc VerifyInvite(VerifyInviteReq) returns (VerifyInviteRsp) {};
+    rpc VerifyInviteToken(VerifyInviteTokenReq) returns (VerifyInviteTokenRsp) {};
     rpc GetAuthToken(GetAuthTokenReq) returns (GetAuthTokenRsp) {};
-    rpc VerifyAuth(VerifyAuthReq) returns (VerifyAuthRsp) {};
+    rpc VerifyAuthToken(VerifyAuthTokenReq) returns (VerifyAuthTokenRsp) {};
+    rpc CancelToken(CancelTokenReq) returns (CancelTokenRsp) {};
 }
 
 enum Status {
-    OK = 0;
-    ErrTokenInvalid = 1;
-    ErrTokenExpired = 2;
+    Empty = 0;
+    OK = 1;
+    TokenRefreshed = 2;
+    TokenInvalid = 3;
+    TokenExpired = 4;
+    TokenCanceled = 5;
 }
 
 message InviteClaims {
@@ -26,11 +30,11 @@ message GetInviteTokenRsp {
     string token = 2;
 }
 
-message VerifyInviteReq {
+message VerifyInviteTokenReq {
     string token = 1;
 }
 
-message VerifyInviteRsp {
+message VerifyInviteTokenRsp {
     Status status =1;
     InviteClaims claims = 2;
 }
@@ -51,12 +55,21 @@ message GetAuthTokenRsp {
     string token = 1;
 }
 
-message VerifyAuthReq {
+message VerifyAuthTokenReq {
     string token = 1;
 }
 
-message VerifyAuthRsp {
+message VerifyAuthTokenRsp {
     Status status = 1;
     AuthClaims claims = 2;
+    string fresh_token = 3;
+}
+
+message CancelTokenReq {
+    string token = 1;
+}
+
+message CancelTokenRsp {
+    Status status = 1;
 }
 
