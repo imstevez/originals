@@ -9,7 +9,7 @@ import (
 	"originals/srv/user/model"
 	proto "originals/srv/user/proto"
 
-	"shendu.com/errors"
+	"errors"
 )
 
 type User struct {

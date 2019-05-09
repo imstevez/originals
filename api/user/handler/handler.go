@@ -1,6 +1,7 @@
 package handler
 
 import (
+	tokenSrvProto "originals/srv/token/proto"
 	userSrvProto "originals/srv/user/proto"
 	"regexp"
 
@@ -10,7 +11,8 @@ import (
 )
 
 type User struct {
-	UserSrv userSrvProto.UserService
+	UserSrv  userSrvProto.UserService
+	TokenSrv tokenSrvProto.TokenService
 }
 
 type Rsp struct {
@@ -38,11 +40,13 @@ func (u *User) Invite(ctx *gin.Context) {
 	rsp := Rsp{}
 	if !regVerify(email, emailReg) {
 		rsp.Code = 301
-		rsp.Message = "invalid param: email"
+		rsp.Message = "email invalid"
 		ctx.JSON(200, rsp)
 		return
 	}
-	userSrvRsp, err := u.UserSrv.Invite(context.TODO(), &userSrvProto.InviteReq{Email: email})
+	userSrvRsp, err := u.UserSrv.Invite(context.TODO(), &userSrvProto.InviteReq{
+		Email: email,
+	})
 	if err != nil {
 		rsp.Code = 500
 		rsp.Message = "Internal error: " + err.Error()
@@ -58,7 +62,7 @@ func (u *User) Invite(ctx *gin.Context) {
 		}
 	case userSrvProto.Status_EmailRegistered:
 		rsp.Code = 302
-		rsp.Message = "email has been registered"
+		rsp.Message = "email registered"
 	case userSrvProto.Status_EmailSendFailed:
 		rsp.Code = 303
 		rsp.Message = "email send failed"
@@ -73,47 +77,94 @@ func (u *User) Invite(ctx *gin.Context) {
 // Register register a user
 func (u *User) Register(ctx *gin.Context) {
 	var (
-		rsp         Rsp
-		ok          bool
+		registerReq userSrvProto.RegisterReq
 		inviteToken string
-		password    string
-		mobile      string
-		nickname    string
-		imageUrl    string
+		ok          bool
+		rsp         Rsp
 	)
-	if inviteToken, ok = ctx.GetPostForm("param 'invite_token' undefined"); !ok {
+	if inviteToken, ok = ctx.GetPostForm("invite_token"); !ok {
 		rsp.Code = 301
-		rsp.Message = "invite_token is empty"
+		rsp.Message = "invite_token empty"
 		ctx.JSON(200, rsp)
 		return
 	}
-	if password, ok = ctx.GetPostForm("password"); !ok {
+	if registerReq.Password, ok = ctx.GetPostForm("password"); !ok {
 		rsp.Code = 301
-		rsp.Message = "param 'password' undefined"
+		rsp.Message = "password undefined"
 		ctx.JSON(200, rsp)
 		return
 	}
-	if !regVerify(password, passwordReg) {
+	if !regVerify(registerReq.Password, passwordReg) {
 		rsp.Code = 301
-		rsp.Message = "param 'password' invalid"
+		rsp.Message = "password invalid"
 		ctx.JSON(200, rsp)
 		return
 	}
-	if nickname, ok = ctx.GetPostForm("nickname"); !ok {
+	if registerReq.Nickname, ok = ctx.GetPostForm("nickname"); !ok {
 		rsp.Code = 301
-		rsp.Message = "param 'nickname' undefined"
+		rsp.Message = "nickname undefined"
 		ctx.JSON(200, rsp)
 		return
 	}
-	if !regVerify(nickname, nickNameReg) {
+	if !regVerify(registerReq.Nickname, nickNameReg) {
 		rsp.Code = 301
-		rsp.Message = "param 'nickname' invalid"
+		rsp.Message = "nickname invalid"
 		ctx.JSON(200, rsp)
 		return
 	}
-	mobile, _ = ctx.GetPostForm("mobile")
-	imageUrl, _ = ctx.GetPostForm("image_url")
-
+	registerReq.Mobile, _ = ctx.GetPostForm("mobile")
+	registerReq.ImageUrl, _ = ctx.GetPostForm("image_url")
+	tokenSrvRsp, err := u.TokenSrv.VerifyInviteToken(context.TODO(), &tokenSrvProto.VerifyInviteTokenReq{
+		Token: inviteToken,
+	})
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	switch tokenSrvRsp.Status {
+	case tokenSrvProto.Status_OK:
+		registerReq.Email = tokenSrvRsp.Claims.Email
+	case tokenSrvProto.Status_TokenInvalid:
+		rsp.Code = 401
+		rsp.Message = "invite_token invalid"
+		ctx.JSON(200, rsp)
+		return
+	case tokenSrvProto.Status_TokenExpired:
+		rsp.Code = 402
+		rsp.Message = "invite_ token expired"
+		ctx.JSON(200, rsp)
+		return
+	default:
+		rsp.Code = 500
+		rsp.Message = "internal error"
+		ctx.JSON(200, rsp)
+		return
+	}
+	userSrvRsp, err := u.UserSrv.Register(context.TODO(), &registerReq)
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	switch userSrvRsp.Status {
+	case userSrvProto.Status_OK:
+		rsp.Code = 200
+		rsp.Message = "success"
+		rsp.Result = map[string]interface{}{
+			"user_id": userSrvRsp.UserId,
+		}
+	case userSrvProto.Status_EmailRegistered:
+		rsp.Code = 302
+		rsp.Message = "email registered"
+	default:
+		rsp.Code = 500
+		rsp.Message = "internal error"
+	}
+	ctx.JSON(200, rsp)
+	return
 }
 
 func regVerify(str, pattern string) bool {
