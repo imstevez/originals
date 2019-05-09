@@ -4,7 +4,7 @@ import (
 	"originals/redis"
 	"originals/srv/token/handler"
 	"originals/srv/token/model"
-	"originals/srv/token/proto"
+	proto "originals/srv/token/proto"
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
@@ -44,14 +44,6 @@ func registerHandler(o *micro.Options) {
 			}); err != nil {
 			return err
 		}
-		return nil
-	})
-}
-
-// Say bye
-func sayBye(o *micro.Options) {
-	o.AfterStop = append(o.AfterStop, func() error {
-		log.Log("Bye")
 		return nil
 	})
 }

@@ -7,16 +7,14 @@ import (
 	"originals/email"
 	tokenProto "originals/srv/token/proto"
 	"originals/srv/user/model"
-	"originals/srv/user/proto"
+	proto "originals/srv/user/proto"
 
 	"shendu.com/errors"
-
-	"github.com/micro/go-micro/client"
 )
 
 type User struct {
-	Model *model.UserModel
-	Cli   client.Client
+	Model    *model.UserModel
+	TokenCli tokenProto.TokenService
 }
 
 const registerEmailBody = `
@@ -49,13 +47,12 @@ func (u *User) Invite(ctx context.Context, req *proto.InviteReq, rsp *proto.Invi
 		rsp.Status = proto.Status_EmailRegistered
 		return nil
 	}
-	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
 	tokenReq := &tokenProto.GetInviteTokenReq{
 		Claims: &tokenProto.InviteClaims{
 			Email: req.Email,
 		},
 	}
-	tokenRsp, err := tokenCli.GetInviteToken(ctx, tokenReq)
+	tokenRsp, err := u.TokenCli.GetInviteToken(ctx, tokenReq)
 	if err != nil {
 		return err
 	}
@@ -119,12 +116,10 @@ func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginR
 		rsp.Status = proto.Status_UserNotExist
 		return nil
 	}
-	if req.Password != utils.Hash(sUser.Password, sUser.PasswordSalt) {
+	if sUser.Password != utils.Hash(req.Password, sUser.PasswordSalt) {
 		rsp.Status = proto.Status_PasswordWrong
 		return nil
 	}
-
-	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
 	tokenReq := &tokenProto.GetAuthTokenReq{
 		Claims: &tokenProto.AuthClaims{
 			UserId:   sUser.UserId,
@@ -134,7 +129,7 @@ func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginR
 			ImageUrl: sUser.ImageUrl,
 		},
 	}
-	tokenRsp, err := tokenCli.GetAuthToken(ctx, tokenReq)
+	tokenRsp, err := u.TokenCli.GetAuthToken(ctx, tokenReq)
 	if err != nil {
 		return err
 	}
@@ -142,20 +137,23 @@ func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginR
 		return errors.New("get auth token failed")
 	}
 	rsp.AuthToken = tokenRsp.Token
+	if err := u.Model.UpdateLastLoginDate(sUser.UserId); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Logout
 func (u *User) Logout(ctx context.Context, req *proto.LogoutReq, rsp *proto.LogoutRsp) error {
 	if req.AuthToken == "" {
-		rsp.Status = proto.Status_PasswordWrong
+		rsp.Status = proto.Status_ParamInvalid
 		return nil
 	}
-	tokenCli := tokenProto.NewTokenService("go.micro.srv", u.Cli)
 	tokenReq := &tokenProto.CancelTokenReq{
 		Token: req.AuthToken,
 	}
-	tokenRsp, err := tokenCli.CancelToken(ctx, tokenReq)
+	tokenRsp, err := u.TokenCli.CancelToken(ctx, tokenReq)
 	if err != nil {
 		return err
 	}

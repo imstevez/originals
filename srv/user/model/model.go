@@ -3,23 +3,11 @@ package model
 import (
 	"database/sql"
 	"time"
-
-	"shendu.com/errors"
-
-	"github.com/go-redis/redis"
 )
 
 type UserModel struct {
 	DB *sql.DB
 }
-
-const (
-	CancelTokenField = `CancelToken`
-	FreshTokenField  = `FreshToken`
-	RefreshSeconds   = 30
-)
-
-var ErrKeyNotExist = errors.New("key is not exist")
 
 // IsEmailExist
 func (mdl *UserModel) IsEmailExist(email string) (bool, error) {
@@ -132,48 +120,6 @@ func (mdl *UserModel) UpdateLastLoginDate(userId int64) error {
 	defer stmt.Close()
 	if _, err := stmt.Exec(userId,
 		time.Now().Format("2006-01-02 15:04:05")); err != nil {
-		return err
-	}
-	return nil
-}
-
-// CancelToken
-func (mdl *UserModel) CancelToken(token string, expiredAt time.Time) error {
-	key := CancelTokenField + ":" + token
-	expiration := time.Until(expiredAt.Add(RefreshSeconds * time.Second))
-	if err := mdl.Redis.Set(key, token, expiration).Err(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// IsTokenCanceled
-func (mdl *UserModel) IsTokenCanceled(token string) (bool, error) {
-	key := CancelTokenField + ":" + token
-	val, err := mdl.Redis.Exists(key).Result()
-	if err != nil {
-		return false, err
-	}
-	return val > 0, err
-}
-
-// GetFreshToken
-func (mdl *UserModel) GetFreshToken(token string) (string, error) {
-	key := FreshTokenField + ":" + token
-	val, err := mdl.Redis.Get(key).Result()
-	if err != nil {
-		if err == redis.Nil {
-			return "", ErrKeyNotExist
-		}
-		return "", err
-	}
-	return val, err
-}
-
-// SetFreshToken
-func (mdl *UserModel) SetFreshToken(oldToken, newToken string) error {
-	key := FreshTokenField + ":" + oldToken
-	if err := mdl.Redis.Set(key, newToken, RefreshSeconds*time.Second).Err(); err != nil {
 		return err
 	}
 	return nil

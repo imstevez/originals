@@ -15,15 +15,15 @@ func main() {
 
 	// New service
 	service := micro.NewService(
-		initRedis,
-		registerHandler,
 		micro.Name("go.micro.srv.token"),
 		micro.Version("v1.0"),
-		sayBye,
 	)
 
 	// Initialise service
-	service.Init()
+	service.Init(
+		initRedis,
+		registerHandler,
+	)
 
 	// Run services
 	if err := service.Run(); err != nil {

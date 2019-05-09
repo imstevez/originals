@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package proto;
+package token;
 
 service Token {
 	rpc GetInviteToken(GetInviteTokenReq) returns (GetInviteTokenRsp) {};

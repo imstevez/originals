@@ -2,8 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"originals/srv/token/model"
-	"originals/srv/token/proto"
+	proto "originals/srv/token/proto"
 	"sync"
 	"time"
 
@@ -104,7 +105,7 @@ func (t *Token) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rs
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(inviteTokenKey))
+	tokenStr, err := token.SignedString([]byte(authTokenKey))
 	if err != nil {
 		return err
 	}
@@ -136,6 +137,7 @@ func (t *Token) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenR
 		}
 	}
 
+	fmt.Println(err)
 	if err == nil {
 		rsp.Status = proto.Status_OK
 		return nil

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"originals/redis"
 	"originals/sql"
+	tokenProto "originals/srv/token/proto"
 	"originals/srv/user/handler"
 	"originals/srv/user/model"
-	"originals/srv/user/proto"
+	proto "originals/srv/user/proto"
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
@@ -34,48 +34,20 @@ func initMysqlDB(o *micro.Options) {
 	})
 }
 
-// Initialize redis
-func initRedis(o *micro.Options) {
-	o.BeforeStart = append(o.BeforeStart, func() error {
-		log.Log("Initializing redis")
-		err := redis.InitRedis()
-		if err != nil {
-			log.Log(err)
-			return err
-		}
-		return nil
-	})
-	o.AfterStop = append(o.AfterStop, func() error {
-		log.Log("Close redis")
-		if err := redis.Redis.Close(); err != nil {
-			log.Log("Close redis failed: " + err.Error())
-			return err
-		}
-		log.Log("redis closed")
-		return nil
-	})
-}
-
 // Register handler
 func registerHandler(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
 		log.Log("Register handler")
+		tokenCli := tokenProto.NewTokenService("go.micro.srv.token", o.Client)
 		if err := proto.RegisterUserHandler(o.Server,
 			&handler.User{
 				Model: &model.UserModel{
 					DB: sql.MysqlDB,
 				},
+				TokenCli: tokenCli,
 			}); err != nil {
 			return err
 		}
-		return nil
-	})
-}
-
-// Say bye
-func sayBye(o *micro.Options) {
-	o.AfterStop = append(o.AfterStop, func() error {
-		log.Log("Bye")
 		return nil
 	})
 }
