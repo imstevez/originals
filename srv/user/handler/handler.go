@@ -24,7 +24,7 @@ const registerEmailBody = `
 		<header><h3>Originals Beta v1.0<h3><hr></header>
 		<article>
 			<p>Hi there,</p>
-			<p>Before use the <b>originals</b>, please take a few minutes to set your account. This link will take you to the page:<br>
+			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
 			<a href="/user/signup?token=%s"><i>Account Setting</i></a></p>
 			<p><b>Thanks</b></p>
 		</article>

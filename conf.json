@@ -1,20 +1,4 @@
 {
-    "name_space": {
-        "srv": "go.micro.srv",
-        "api": "go.micro.api",
-        "web": "go.micro.web"
-    },
-    "srv": {
-        "user": {
-            "name": "user",
-            "version": "Beta v1.0",
-            "port": 3001,
-            "extra": {
-                "jwt_secret_invite": "originals_e_key",
-                "jwt_secret_auth": "originals_u_key"
-            }
-        }
-    },
     "sql": {
         "user_name": "root",
         "Password": "root",
