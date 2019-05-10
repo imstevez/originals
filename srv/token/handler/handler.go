@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"originals/srv/token/model"
 	proto "originals/srv/token/proto"
 	"sync"
@@ -22,7 +21,7 @@ const (
 )
 
 var (
-	inviteTokenLive    = 5 * time.Minute
+	inviteTokenLive    = 10 * time.Minute
 	authTokenLive      = 5 * time.Minute
 	authTokenFreshLive = 5 * time.Minute
 )
@@ -137,7 +136,6 @@ func (t *Token) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenR
 		}
 	}
 
-	fmt.Println(err)
 	if err == nil {
 		rsp.Status = proto.Status_OK
 		return nil

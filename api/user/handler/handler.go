@@ -34,7 +34,7 @@ func (u *User) Index(ctx *gin.Context) {
 	})
 }
 
-// Invite send an invite email to user
+// Invite
 func (u *User) Invite(ctx *gin.Context) {
 	email := ctx.Query("email")
 	rsp := Rsp{}
@@ -74,7 +74,7 @@ func (u *User) Invite(ctx *gin.Context) {
 	return
 }
 
-// Register register a user
+// Register
 func (u *User) Register(ctx *gin.Context) {
 	var (
 		registerReq userSrvProto.RegisterReq
@@ -133,7 +133,7 @@ func (u *User) Register(ctx *gin.Context) {
 		return
 	case tokenSrvProto.Status_TokenExpired:
 		rsp.Code = 402
-		rsp.Message = "invite_ token expired"
+		rsp.Message = "invite_token expired"
 		ctx.JSON(200, rsp)
 		return
 	default:
@@ -167,6 +167,97 @@ func (u *User) Register(ctx *gin.Context) {
 	return
 }
 
+// Login
+func (u *User) Login(ctx *gin.Context) {
+	var (
+		loginReq userSrvProto.LoginReq
+		rsp      Rsp
+		ok       bool
+	)
+	if loginReq.Email, ok = ctx.GetPostForm("email"); !ok {
+		rsp.Code = 301
+		rsp.Message = "invite_token empty"
+		ctx.JSON(200, rsp)
+		return
+	}
+	if loginReq.Password, ok = ctx.GetPostForm("password"); !ok {
+		rsp.Code = 301
+		rsp.Message = "invite_token empty"
+		ctx.JSON(200, rsp)
+		return
+	}
+
+	loginRsp, err := u.UserSrv.Login(context.TODO(), &loginReq)
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	switch loginRsp.Status {
+	case userSrvProto.Status_OK:
+		rsp.Code = 200
+		rsp.Message = "success"
+		ctx.Header("x-originals-token", loginRsp.AuthToken)
+	case userSrvProto.Status_UserNotExist:
+		rsp.Code = 401
+		rsp.Message = "user not exist"
+	case userSrvProto.Status_PasswordWrong:
+		rsp.Code = 402
+		rsp.Message = "password wrong"
+	default:
+		rsp.Code = 500
+		rsp.Message = "internal error"
+	}
+	ctx.JSON(200, rsp)
+	return
+}
+
+// Logout
+func (u *User) Logout(ctx *gin.Context) {
+	var (
+		logoutReq userSrvProto.LogoutReq
+		rsp       Rsp
+	)
+	logoutReq.AuthToken = ctx.GetHeader("x-originals-token")
+	if logoutReq.AuthToken == "" {
+		rsp.Code = 301
+		rsp.Message = "token empty"
+		ctx.JSON(200, rsp)
+		return
+	}
+	logoutRsp, err := u.UserSrv.Logout(context.TODO(), &logoutReq)
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	switch logoutRsp.Status {
+	case userSrvProto.Status_OK:
+		rsp.Code = 200
+		rsp.Message = "success"
+		ctx.Header("x-originals-token", "")
+	default:
+		rsp.Code = 500
+		rsp.Message = "internal error"
+	}
+	ctx.JSON(200, rsp)
+	return
+}
+
+// List
+func (u *User) Profile(ctx *gin.Context) {
+	user := make(map[string]interface{})
+	user["user_id"] = ctx.MustGet("user_id").(int64)
+	user["Email"] = ctx.MustGet("email").(string)
+	user["mobile"] = ctx.MustGet("mobile").(string)
+	user["nickname"] = ctx.MustGet("nickname").(string)
+	user["image_url"] = ctx.MustGet("image_url").(string)
+	ctx.JSON(200, gin.H{"code": 200, "result": user})
+}
+
+// regVerfy
 func regVerify(str, pattern string) bool {
 	reg := regexp.MustCompile(pattern)
 	return reg.MatchString(str)

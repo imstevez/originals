@@ -136,11 +136,12 @@ func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginR
 	if tokenRsp.Status != tokenProto.Status_OK || tokenRsp.Token == "" {
 		return errors.New("get auth token failed")
 	}
-	rsp.AuthToken = tokenRsp.Token
 	if err := u.Model.UpdateLastLoginDate(sUser.UserId); err != nil {
 		return err
 	}
 
+	rsp.AuthToken = tokenRsp.Token
+	rsp.Status = proto.Status_OK
 	return nil
 }
 
