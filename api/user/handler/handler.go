@@ -250,7 +250,7 @@ func (u *User) Logout(ctx *gin.Context) {
 func (u *User) Profile(ctx *gin.Context) {
 	user := make(map[string]interface{})
 	user["user_id"] = ctx.MustGet("user_id").(int64)
-	user["Email"] = ctx.MustGet("email").(string)
+	user["email"] = ctx.MustGet("email").(string)
 	user["mobile"] = ctx.MustGet("mobile").(string)
 	user["nickname"] = ctx.MustGet("nickname").(string)
 	user["image_url"] = ctx.MustGet("image_url").(string)

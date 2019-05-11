@@ -21,9 +21,9 @@ const (
 )
 
 var (
-	inviteTokenLive    = 10 * time.Minute
-	authTokenLive      = 5 * time.Minute
-	authTokenFreshLive = 5 * time.Minute
+	inviteTokenLive    = 20 * time.Minute
+	authTokenLive      = 20 * time.Minute
+	authTokenFreshLive = 20 * time.Minute
 )
 
 type inviteTokenClaims struct {

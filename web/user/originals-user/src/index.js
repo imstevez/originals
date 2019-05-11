@@ -1,27 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import ButtonAppBar from './button_app_bar'
-import Paper from '@material-ui/core/Paper';
-import Invite from './invite.js'
-import { styled } from '@material-ui/styles';
-
-const MyPaper = styled(Paper)({
-    with: '40%',
-    height: '400px',
-    margin: '20px',
-    padding: '30px'
-});
-
+import { BrowserRouter as Router, Route } from "react-router-dom";
+import Invite from "./Invite"
+import Login from "./Login"
+import Profile from "./Profile"
 
 function App() {
     return (
-        <div>
-            <ButtonAppBar/>
-            <MyPaper>
-                <Invite/>
-            </MyPaper>
-
-        </div>
+        <Router>
+            <Route path="/invite" component={Invite}/>
+            <Route path="/profile" component={Profile}/>
+            <Route path="/login" component={Login}/>
+        </Router>
     );
 }
 
