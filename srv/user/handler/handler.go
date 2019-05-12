@@ -112,7 +112,7 @@ func (u *User) Login(ctx context.Context, req *proto.LoginReq, rsp *proto.LoginR
 	if err != nil {
 		return err
 	}
-	if sUser == nil {
+	if sUser == nil || sUser.UserId == 0 {
 		rsp.Status = proto.Status_UserNotExist
 		return nil
 	}

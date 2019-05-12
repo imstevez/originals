@@ -46,6 +46,14 @@ func Auth() gin.HandlerFunc {
 			ctx.Set("nickname", tokenVerifyRsp.Claims.Nickname)
 			ctx.Set("image_url", tokenVerifyRsp.Claims.ImageUrl)
 			ctx.Next()
+		case tokenSrvProto.Status_TokenRefreshed:
+			ctx.Set("user_id", tokenVerifyRsp.Claims.UserId)
+			ctx.Set("email", tokenVerifyRsp.Claims.Email)
+			ctx.Set("mobile", tokenVerifyRsp.Claims.Mobile)
+			ctx.Set("nickname", tokenVerifyRsp.Claims.Nickname)
+			ctx.Set("image_url", tokenVerifyRsp.Claims.ImageUrl)
+			ctx.Next()
+			ctx.Header("x-originals-token", tokenVerifyRsp.FreshToken)
 		case tokenSrvProto.Status_TokenInvalid:
 			ctx.JSON(401, gin.H{"code": 401, "message": "auth token invalid"})
 			ctx.Abort()
@@ -65,7 +73,6 @@ func Auth() gin.HandlerFunc {
 
 func Cors() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ctx.Header("Access-Control-Allow-Origin", "*")
 		ctx.Header("Access-Control-Allow-Origin", "*")
 		ctx.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		ctx.Header("Access-Control-Allow-Headers", "Content-Type, x-originals-token")

@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -112,14 +113,14 @@ ImageUrl, CreatedOn)
 
 // UpdateLastLoginTime
 func (mdl *UserModel) UpdateLastLoginDate(userId int64) error {
-	sqlStr := `update users set LastLoginDate = ? where ID = ?`
+	sqlStr := `update users set LastLoginDate='%s' where ID = '%d';`
+	sqlStr = fmt.Sprintf(sqlStr, time.Now().Format("2006-01-02 15:04:05"), userId)
 	stmt, err := mdl.DB.Prepare(sqlStr)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	if _, err := stmt.Exec(userId,
-		time.Now().Format("2006-01-02 15:04:05")); err != nil {
+	if _, err := stmt.Exec(); err != nil {
 		return err
 	}
 	return nil

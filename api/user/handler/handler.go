@@ -176,13 +176,13 @@ func (u *User) Login(ctx *gin.Context) {
 	)
 	if loginReq.Email, ok = ctx.GetPostForm("email"); !ok {
 		rsp.Code = 301
-		rsp.Message = "invite_token empty"
+		rsp.Message = "email empty"
 		ctx.JSON(200, rsp)
 		return
 	}
 	if loginReq.Password, ok = ctx.GetPostForm("password"); !ok {
 		rsp.Code = 301
-		rsp.Message = "invite_token empty"
+		rsp.Message = "password empty"
 		ctx.JSON(200, rsp)
 		return
 	}
@@ -198,10 +198,12 @@ func (u *User) Login(ctx *gin.Context) {
 	case userSrvProto.Status_OK:
 		rsp.Code = 200
 		rsp.Message = "success"
-		ctx.Header("x-originals-token", loginRsp.AuthToken)
+		rsp.Result = map[string]interface{}{
+			"token": loginRsp.AuthToken,
+		}
 	case userSrvProto.Status_UserNotExist:
 		rsp.Code = 401
-		rsp.Message = "user not exist"
+		rsp.Message = "email not exist"
 	case userSrvProto.Status_PasswordWrong:
 		rsp.Code = 402
 		rsp.Message = "password wrong"
