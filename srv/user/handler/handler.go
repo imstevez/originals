@@ -25,7 +25,8 @@ const registerEmailBody = `
 		<article>
 			<p>Hi there,</p>
 			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
-			<a href="/user/signup?token=%s"><i>Account Setting</i></a></p>
+			<a href="http://localhost:3000/complete/%s"><i>Account Setting</i></a></p>
+			<p>If the link above doesn't work, please copy this link to your browser: http://localhost:3000/complete/%s</p>
 			<p><b>Thanks</b></p>
 		</article>
 		<footer>
@@ -34,6 +35,54 @@ const registerEmailBody = `
 	</body>
 </html>
 `
+
+// IsEmailRegistered
+func (u *User) IsEmailRegistered(ctx context.Context, req *proto.IsEmailRegisteredReq, rsp *proto.IsEmailRegisteredRsp) (err error) {
+	rsp.Registered, err = u.Model.IsEmailExist(req.Email)
+	return
+}
+
+// CreateUser
+func (u *User) CreateUser(ctx context.Context, req *proto.CreateUserReq, rsp *proto.CreateUserRsp) (err error) {
+	password, salt := utils.Password(req.Password)
+	rsp.UserId, err = u.Model.InsertUser(&model.InsertUserObj{
+		Email:        req.Email,
+		Password:     password,
+		PasswordSalt: salt,
+		Avatar:       req.Avatar,
+		Nickname:     req.Nickname,
+	})
+	return
+}
+
+// VerifyUser
+func (u *User) VerifyUser(ctx context.Context, req *proto.VerifyUserReq, rsp *proto.VerifyUserRsp) (err error) {
+	var sUser *model.SecretUser
+	if sUser, err = u.Model.GetUserSecret(req.Email); err != nil {
+		return
+	}
+	if sUser.UserId == 0 {
+		rsp.Result = proto.VerifyUserRsp_NOT_EXIST
+		return
+	}
+	if sUser.Password != utils.Hash(req.Password, sUser.PasswordSalt) {
+		rsp.Result = proto.VerifyUserRsp_PWD_WRONG
+		return
+	}
+	rsp.Result = proto.VerifyUserRsp_OK
+	rsp.UserInfo = &proto.BaseUserInfo{
+		UserId:   sUser.UserId,
+		Email:    sUser.Email,
+		Nickname: sUser.NickName,
+		Avatar:   sUser.Avatar,
+	}
+	return
+}
+
+// UpdateUserLoginDate
+func (u *User) UpdateUserLoginDate(ctx context.Context, req *proto.UpdateUserLoginDateReq, rsp *proto.UpdateUserLoginDateRsp) (err error) {
+	return u.Model.UpdateLastLoginDate(req.UserId)
+}
 
 // Invite
 func (u *User) Invite(ctx context.Context, req *proto.InviteReq, rsp *proto.InviteRsp) error {
@@ -61,7 +110,7 @@ func (u *User) Invite(ctx context.Context, req *proto.InviteReq, rsp *proto.Invi
 	}
 	rsp.InviteToken = tokenRsp.Token
 
-	mailBody := fmt.Sprintf(registerEmailBody, tokenRsp.Token)
+	mailBody := fmt.Sprintf(registerEmailBody, tokenRsp.Token, tokenRsp.Token)
 	registerMail := &email.Email{
 		Recivers: []string{req.Email},
 		Subject:  "Originals-起源-Beta v1.0 注册测试邮件",
@@ -82,13 +131,12 @@ func (u *User) Register(ctx context.Context, req *proto.RegisterReq, rsp *proto.
 		return nil
 	}
 	password, salt := utils.Password(req.Password)
-	id, err := u.Model.InsertUser(&model.InserUserObj{
+	id, err := u.Model.InsertUser(&model.InsertUserObj{
 		Email:        req.Email,
 		Password:     password,
 		PasswordSalt: salt,
-		Mobile:       req.Mobile,
 		Nickname:     req.Nickname,
-		ImageUrl:     req.ImageUrl,
+		Avatar:       req.ImageUrl,
 	})
 	if err != nil {
 		return err

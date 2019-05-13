@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"fmt"
+	"originals/email"
 	tokenSrvProto "originals/srv/token/proto"
 	userSrvProto "originals/srv/user/proto"
 	"regexp"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -27,25 +30,49 @@ const (
 	nickNameReg = `[a-zA-Z0-9]{4,16}`
 )
 
-func (u *User) Index(ctx *gin.Context) {
-	ctx.JSON(200, Rsp{
-		Code:    200,
-		Message: "Hello, this is user api.",
-	})
+type RegisterReq struct {
+	Email string `json:"email"`
 }
 
-// Invite
-func (u *User) Invite(ctx *gin.Context) {
-	email := ctx.Query("email")
-	rsp := Rsp{}
-	if !regVerify(email, emailReg) {
+const registerEmailBody = `
+<!doctype html>
+<html>
+	<body>
+		<header><h3>Originals Beta v1.0<h3><hr></header>
+		<article>
+			<p>Hi there,</p>
+			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
+			<a href="http://localhost:3000/complete/%s"><i>Account Setting</i></a></p>
+			<p>If the link above doesn't work, please copy this link to your browser: <b>http://localhost:3000/complete/%s</b></p>
+			<p><b>Thanks</b></p>
+		</article>
+		<footer>
+			<p>-------------------------------<br>Originals-Team</p>
+		<footer>
+	</body>
+</html>
+`
+
+// Register
+func (u *User) Register(ctx *gin.Context) {
+	var (
+		req RegisterReq
+		rsp Rsp
+	)
+	if err := ctx.Bind(&req); err != nil {
 		rsp.Code = 301
+		rsp.Message = "param error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	if !regVerify(req.Email, emailReg) {
+		rsp.Code = 302
 		rsp.Message = "email invalid"
 		ctx.JSON(200, rsp)
 		return
 	}
-	userSrvRsp, err := u.UserSrv.Invite(context.TODO(), &userSrvProto.InviteReq{
-		Email: email,
+	isEmailRegisteredRsp, err := u.UserSrv.IsEmailRegistered(context.TODO(), &userSrvProto.IsEmailRegisteredReq{
+		Email: req.Email,
 	})
 	if err != nil {
 		rsp.Code = 500
@@ -53,41 +80,110 @@ func (u *User) Invite(ctx *gin.Context) {
 		ctx.JSON(200, rsp)
 		return
 	}
-	switch userSrvRsp.Status {
-	case userSrvProto.Status_OK:
-		rsp.Code = 200
-		rsp.Message = "success"
-		rsp.Result = map[string]interface{}{
-			"invite_token": userSrvRsp.InviteToken,
-		}
-	case userSrvProto.Status_EmailRegistered:
-		rsp.Code = 302
-		rsp.Message = "email registered"
-	case userSrvProto.Status_EmailSendFailed:
+	if isEmailRegisteredRsp.Registered {
 		rsp.Code = 303
-		rsp.Message = "email send failed"
-	default:
-		rsp.Code = 500
-		rsp.Message = "internal error"
+		rsp.Message = "email has been registered"
+		ctx.JSON(200, rsp)
 	}
+
+	getInviteTokenRsp, err := u.TokenSrv.GetInviteToken(ctx, &tokenSrvProto.GetInviteTokenReq{
+		Claims: &tokenSrvProto.InviteClaims{
+			Email: req.Email,
+		},
+	})
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "Internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+
+	mailBody := fmt.Sprintf(registerEmailBody, getInviteTokenRsp.Token, getInviteTokenRsp.Token)
+	registerMail := &email.Email{
+		Recivers: []string{req.Email},
+		Subject:  "Originals-起源-Beta v1.0 注册测试邮件",
+		Body:     mailBody,
+	}
+	if err := email.SendMail(registerMail); err != nil {
+		rsp.Code = 304
+		rsp.Message = "email send failed"
+		ctx.JSON(200, rsp)
+		return
+	}
+
+	rsp.Code = 200
+	rsp.Message = "success"
+	rsp.Result = map[string]interface{}{
+		"invite_token": getInviteTokenRsp.Token,
+	}
+
 	ctx.JSON(200, rsp)
 	return
 }
 
-// Register
-func (u *User) Register(ctx *gin.Context) {
+// Complete
+func (u *User) Complete(ctx *gin.Context) {
 	var (
-		registerReq userSrvProto.RegisterReq
-		inviteToken string
-		ok          bool
-		rsp         Rsp
+		createUserReq userSrvProto.CreateUserReq
+		ok            bool
+		rsp           Rsp
 	)
-	if inviteToken, ok = ctx.GetPostForm("invite_token"); !ok {
+	token := ctx.GetHeader("x-originals-token")
+	if token == "" {
+		rsp.Code = 301
+		rsp.Message = "token is empty"
+		ctx.JSON(200, rsp)
+		return
+	}
+	verifyInviteTokenRsp, err := u.TokenSrv.VerifyInviteToken(context.TODO(), &tokenSrvProto.VerifyInviteTokenReq{
+		Token: token,
+	})
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	createUserReq.Email = verifyInviteTokenRsp.Claims.Email
+
+	isEmailRegisteredRsp, err := u.UserSrv.IsEmailRegistered(context.TODO(), &userSrvProto.IsEmailRegisteredReq{
+		Email: createUserReq.Email,
+	})
+	if err != nil {
+		rsp.Code = 500
+		rsp.Message = "Internal error: " + err.Error()
+		ctx.JSON(200, rsp)
+		return
+	}
+	if isEmailRegisteredRsp.Registered {
+		rsp.Code = 302
+		rsp.Message = "email has been registered"
+		ctx.JSON(200, rsp)
+	}
+
+	avatarFile, err := ctx.FormFile("avatar")
+	if err != nil {
+		rsp.Code = 303
+		rsp.Message = "avatar image error"
+		ctx.JSON(200, rsp)
+	}
+	if avatarFile != nil {
+		dst := fmt.Sprintf("./file/avatar/%s_%s", time.Now().Unix(), avatarFile.Filename)
+		if err := ctx.SaveUploadedFile(avatarFile, dst); err != nil {
+			rsp.Code = 500
+			rsp.Message = "internal error: " + err.Error()
+			ctx.JSON(200, rsp)
+			return
+		}
+	}
+
+	if inviteToken, ok = ctx.GetPostForm("token"); !ok {
 		rsp.Code = 301
 		rsp.Message = "invite_token empty"
 		ctx.JSON(200, rsp)
 		return
 	}
+
 	if registerReq.Password, ok = ctx.GetPostForm("password"); !ok {
 		rsp.Code = 301
 		rsp.Message = "password undefined"

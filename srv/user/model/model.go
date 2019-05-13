@@ -36,13 +36,12 @@ type SecretUser struct {
 	PasswordSalt string
 	Mobile       string
 	NickName     string
-	ImageUrl     string
+	Avatar       string
 }
 
 // GetUserByEmail
 func (mdl *UserModel) GetUserSecret(email string) (*SecretUser, error) {
-	sqlStr := `select ID, Email, Password, PasswordSalt,
-Mobile, Nickname, ImageUrl
+	sqlStr := `select ID, Email, Password, PasswordSalt, Nickname, Avatar
 		from users 
 		where Email = ? and isDeleted = 0;
 	`
@@ -62,29 +61,27 @@ Mobile, Nickname, ImageUrl
 			&sUser.Email,
 			&sUser.Password,
 			&sUser.PasswordSalt,
-			&sUser.Mobile,
 			&sUser.NickName,
-			&sUser.ImageUrl); err != nil {
+			&sUser.Avatar); err != nil {
 			return nil, err
 		}
 	}
 	return &sUser, nil
 }
 
-type InserUserObj struct {
+type InsertUserObj struct {
 	Email        string
 	Password     string
 	PasswordSalt string
-	Mobile       string
 	Nickname     string
-	ImageUrl     string
+	Avatar       string
 }
 
 // InserUser
-func (mdl *UserModel) InsertUser(user *InserUserObj) (int64, error) {
-	sqlStr := `insert into users (Email, Password, PasswordSalt, Mobile, NickName,
-ImageUrl, CreatedOn) 
-		select ?, ?, ?, ?, ?, ?, ? from dual
+func (mdl *UserModel) InsertUser(user *InsertUserObj) (int64, error) {
+	sqlStr := `insert into users (Email, Password, PasswordSalt, NickName,
+Avatar, CreatedOn) 
+		select ?, ?, ?, ?, ?, ? from dual
 		where not exists (
 			select 1 from users where Email = ? 
 			and IsDeleted = 0
@@ -99,9 +96,8 @@ ImageUrl, CreatedOn)
 		user.Email,
 		user.Password,
 		user.PasswordSalt,
-		user.Mobile,
 		user.Nickname,
-		user.ImageUrl,
+		user.Avatar,
 		time.Now().Format("2006-01-02 15:04:05"),
 		user.Email,
 	); err == nil {

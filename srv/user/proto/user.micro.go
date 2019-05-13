@@ -34,6 +34,11 @@ var _ server.Option
 // Client API for User service
 
 type UserService interface {
+	IsEmailRegistered(ctx context.Context, in *IsEmailRegisteredReq, opts ...client.CallOption) (*IsEmailRegisteredRsp, error)
+	CreateUser(ctx context.Context, in *CreateUserReq, opts ...client.CallOption) (*CreateUserRsp, error)
+	VerifyUser(ctx context.Context, in *VerifyUserReq, opts ...client.CallOption) (*VerifyUserRsp, error)
+	UpdateUserLoginDate(ctx context.Context, in *UpdateUserLoginDateReq, opts ...client.CallOption) (*UpdateUserLoginDateRsp, error)
+	///////////////////////////////////
 	Invite(ctx context.Context, in *InviteReq, opts ...client.CallOption) (*InviteRsp, error)
 	Register(ctx context.Context, in *RegisterReq, opts ...client.CallOption) (*RegisterRsp, error)
 	Login(ctx context.Context, in *LoginReq, opts ...client.CallOption) (*LoginRsp, error)
@@ -56,6 +61,46 @@ func NewUserService(name string, c client.Client) UserService {
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *userService) IsEmailRegistered(ctx context.Context, in *IsEmailRegisteredReq, opts ...client.CallOption) (*IsEmailRegisteredRsp, error) {
+	req := c.c.NewRequest(c.name, "User.IsEmailRegistered", in)
+	out := new(IsEmailRegisteredRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) CreateUser(ctx context.Context, in *CreateUserReq, opts ...client.CallOption) (*CreateUserRsp, error) {
+	req := c.c.NewRequest(c.name, "User.CreateUser", in)
+	out := new(CreateUserRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) VerifyUser(ctx context.Context, in *VerifyUserReq, opts ...client.CallOption) (*VerifyUserRsp, error) {
+	req := c.c.NewRequest(c.name, "User.VerifyUser", in)
+	out := new(VerifyUserRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) UpdateUserLoginDate(ctx context.Context, in *UpdateUserLoginDateReq, opts ...client.CallOption) (*UpdateUserLoginDateRsp, error) {
+	req := c.c.NewRequest(c.name, "User.UpdateUserLoginDate", in)
+	out := new(UpdateUserLoginDateRsp)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *userService) Invite(ctx context.Context, in *InviteReq, opts ...client.CallOption) (*InviteRsp, error) {
@@ -101,6 +146,11 @@ func (c *userService) Logout(ctx context.Context, in *LogoutReq, opts ...client.
 // Server API for User service
 
 type UserHandler interface {
+	IsEmailRegistered(context.Context, *IsEmailRegisteredReq, *IsEmailRegisteredRsp) error
+	CreateUser(context.Context, *CreateUserReq, *CreateUserRsp) error
+	VerifyUser(context.Context, *VerifyUserReq, *VerifyUserRsp) error
+	UpdateUserLoginDate(context.Context, *UpdateUserLoginDateReq, *UpdateUserLoginDateRsp) error
+	///////////////////////////////////
 	Invite(context.Context, *InviteReq, *InviteRsp) error
 	Register(context.Context, *RegisterReq, *RegisterRsp) error
 	Login(context.Context, *LoginReq, *LoginRsp) error
@@ -109,6 +159,10 @@ type UserHandler interface {
 
 func RegisterUserHandler(s server.Server, hdlr UserHandler, opts ...server.HandlerOption) error {
 	type user interface {
+		IsEmailRegistered(ctx context.Context, in *IsEmailRegisteredReq, out *IsEmailRegisteredRsp) error
+		CreateUser(ctx context.Context, in *CreateUserReq, out *CreateUserRsp) error
+		VerifyUser(ctx context.Context, in *VerifyUserReq, out *VerifyUserRsp) error
+		UpdateUserLoginDate(ctx context.Context, in *UpdateUserLoginDateReq, out *UpdateUserLoginDateRsp) error
 		Invite(ctx context.Context, in *InviteReq, out *InviteRsp) error
 		Register(ctx context.Context, in *RegisterReq, out *RegisterRsp) error
 		Login(ctx context.Context, in *LoginReq, out *LoginRsp) error
@@ -123,6 +177,22 @@ func RegisterUserHandler(s server.Server, hdlr UserHandler, opts ...server.Handl
 
 type userHandler struct {
 	UserHandler
+}
+
+func (h *userHandler) IsEmailRegistered(ctx context.Context, in *IsEmailRegisteredReq, out *IsEmailRegisteredRsp) error {
+	return h.UserHandler.IsEmailRegistered(ctx, in, out)
+}
+
+func (h *userHandler) CreateUser(ctx context.Context, in *CreateUserReq, out *CreateUserRsp) error {
+	return h.UserHandler.CreateUser(ctx, in, out)
+}
+
+func (h *userHandler) VerifyUser(ctx context.Context, in *VerifyUserReq, out *VerifyUserRsp) error {
+	return h.UserHandler.VerifyUser(ctx, in, out)
+}
+
+func (h *userHandler) UpdateUserLoginDate(ctx context.Context, in *UpdateUserLoginDateReq, out *UpdateUserLoginDateRsp) error {
+	return h.UserHandler.UpdateUserLoginDate(ctx, in, out)
 }
 
 func (h *userHandler) Invite(ctx context.Context, in *InviteReq, out *InviteRsp) error {

@@ -21,6 +21,55 @@ const styles = theme => ({
 });
 
 class Register extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            email: "",
+            emailErr: false,
+            emailValidate: false
+        };
+    }
+    handleEmail(e) {
+        this.setState({
+            email: e.target.value,
+        });
+        let reg = new RegExp("^[a-z0-9]+([._\\-]*[a-z0-9])*@([a-z0-9]+[-a-z0-9]*[a-z0-9]+.){1,63}[a-z0-9]+$");
+        if(this.state.email !== "" && !reg.test(this.state.email)){
+            this.setState({
+                emailErr: true,
+                emailValidate: false
+            });
+        } else if (this.state.email === "") {
+            this.setState({
+                emailErr: false,
+                emailValidate: false
+            })
+        } else {
+            this.setState({
+                emailErr: false,
+                emailValidate: true
+            })
+        }
+    }
+    handleSubmit() {
+        if(this.state.emailValidate){
+            fetch("http://localhost:8080/user/invite?email=" + this.state.email).then(rsp => {
+                return rsp.json();
+            }).then(data => {
+                if (data.code === 200) {
+                    alert(data.message)
+                    this.props.history.push("/login");
+                } else {
+                    this.setState({
+                        emailErr: false
+                    });
+                    alert(data.message);
+                }
+            }).catch(err => {
+                alert(err);
+            });
+        }
+    }
     render() {
         const { classes } = this.props;
         return (
@@ -32,8 +81,8 @@ class Register extends React.Component {
                     </Typography>
                     <Divider variant="middle" className={classes.divider} />
                     <Grid container justify="center">
-                        <TextField id="standard-search" label="Email" type="email" className={classes.input} margin="normal"/>
-                        <Button variant="contained" color="primary" className={classes.button} size="large">
+                        <TextField id="standard-search" error={this.state.emailErr} value={this.state.email} onChange={e => this.handleEmail(e)} onBlur={e => this.handleEmail(e)} label="Email" type="email" className={classes.input} margin="normal"/>
+                        <Button onClick={() => this.handleSubmit()} variant="contained" color="primary" className={classes.button} size="large">
                             REGISTER
                         </Button>
                     </Grid>

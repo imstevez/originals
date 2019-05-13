@@ -12,7 +12,7 @@ class App extends React.Component {
             <Router>
                 <Route path="/" exact component={Profile}/>
                 <Route path="/Register" component={Register}/>
-                <Route path="/Complete" component={Complete}/>
+                <Route path="/Complete/:token" component={Complete}/>
                 <Route path="/login" component={Login}/>
                 <Route path="/profile" component={Profile}/>
             </Router>

@@ -3,6 +3,12 @@ syntax = "proto3";
 package user;
 
 service User {
+    rpc IsEmailRegistered(IsEmailRegisteredReq) returns(IsEmailRegisteredRsp) {};
+    rpc CreateUser(CreateUserReq) returns(CreateUserRsp) {};
+    rpc VerifyUser(VerifyUserReq) returns(VerifyUserRsp) {};
+    rpc UpdateUserLoginDate(UpdateUserLoginDateReq) returns(UpdateUserLoginDateRsp) {};
+
+    ///////////////////////////////////
 	rpc Invite(InviteReq) returns (InviteRsp) {};
     rpc Register(RegisterReq) returns (RegisterRsp) {};
     rpc Login(LoginReq) returns (LoginRsp) {};
@@ -20,6 +26,57 @@ enum Status {
     PasswordWrong = 402;
 }
 
+message IsEmailRegisteredReq {
+    string email = 1;
+}
+
+message IsEmailRegisteredRsp {
+    bool registered = 1;
+}
+
+message CreateUserReq {
+    string email = 1;
+    string avatar = 2;
+    string nickname = 3;
+    string password = 4;
+}
+
+message CreateUserRsp {
+    int64 user_id = 2;
+}
+
+message VerifyUserReq {
+    string email = 1;
+    string password = 2;
+}
+
+message BaseUserInfo {
+    int64 user_id = 2;
+    string email = 3;
+    string avatar = 4;
+    string nickname = 5;
+}
+
+message VerifyUserRsp {
+     Result result = 1;
+    enum Result {
+        OK = 0;
+        NOT_EXIST = 1;
+        PWD_WRONG = 2;
+    }
+    BaseUserInfo user_info = 2;
+}
+
+message UpdateUserLoginDateReq {
+    int64 user_id = 1;
+}
+
+message UpdateUserLoginDateRsp {
+    // empty response
+}
+
+
+////////////////////////
 message InviteReq {
     string email = 1;
 }
