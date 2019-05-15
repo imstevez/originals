@@ -1,30 +1,14 @@
 syntax = "proto3";
 
-package user;
+package proto;
 
 service User {
-    rpc IsEmailRegistered(IsEmailRegisteredReq) returns(IsEmailRegisteredRsp) {};
-    rpc CreateUser(CreateUserReq) returns(CreateUserRsp) {};
-    rpc VerifyUser(VerifyUserReq) returns(VerifyUserRsp) {};
-    rpc UpdateUserLoginDate(UpdateUserLoginDateReq) returns(UpdateUserLoginDateRsp) {};
-
-    ///////////////////////////////////
-	rpc Invite(InviteReq) returns (InviteRsp) {};
-    rpc Register(RegisterReq) returns (RegisterRsp) {};
-    rpc Login(LoginReq) returns (LoginRsp) {};
-    rpc Logout(LogoutReq) returns (LogoutRsp) {};
+    rpc IsEmailRegistered(IsEmailRegisteredReq) returns (IsEmailRegisteredRsp) {};
+    rpc CreateNewUser(CreateNewUserReq) returns (CreateNewUserRsp) {};
+    rpc VerifyUser(VerifyUserReq) returns (VerifyUserRsp) {};
+    rpc UpdateUserLoginDate(UpdateUserLoginDateReq) returns (UpdateUserLoginDateRsp) {};
 }
 
-enum Status {
-    Empty = 0;
-    OK = 200;
-    ParamInvalid = 300;
-    EmailInvalid = 301;
-    EmailRegistered = 302;
-    EmailSendFailed = 303;
-    UserNotExist = 401;
-    PasswordWrong = 402;
-}
 
 message IsEmailRegisteredReq {
     string email = 1;
@@ -34,14 +18,14 @@ message IsEmailRegisteredRsp {
     bool registered = 1;
 }
 
-message CreateUserReq {
+message CreateNewUserReq {
     string email = 1;
-    string avatar = 2;
+    string password = 2;
     string nickname = 3;
-    string password = 4;
+    string avatar = 4;
 }
 
-message CreateUserRsp {
+message CreateNewUserRsp {
     int64 user_id = 2;
 }
 
@@ -50,21 +34,21 @@ message VerifyUserReq {
     string password = 2;
 }
 
-message BaseUserInfo {
+message UserInfo {
     int64 user_id = 2;
     string email = 3;
     string avatar = 4;
     string nickname = 5;
 }
 
+enum UserVerifyStatus {
+    OK = 0;
+    NOT_EXIST = 1;
+    PWD_ERROR = 2;
+}
 message VerifyUserRsp {
-     Result result = 1;
-    enum Result {
-        OK = 0;
-        NOT_EXIST = 1;
-        PWD_WRONG = 2;
-    }
-    BaseUserInfo user_info = 2;
+    UserVerifyStatus verify_status = 1;
+    UserInfo user_info = 2;
 }
 
 message UpdateUserLoginDateReq {
@@ -73,46 +57,4 @@ message UpdateUserLoginDateReq {
 
 message UpdateUserLoginDateRsp {
     // empty response
-}
-
-
-////////////////////////
-message InviteReq {
-    string email = 1;
-}
-
-message InviteRsp {
-    Status status = 1;
-    string invite_token = 2;
-}
-
-message RegisterReq {
-    string email = 1;
-    string password = 2;
-    string mobile = 4;
-    string nickname = 5;
-    string image_url = 6;
-}
-
-message RegisterRsp {
-    Status status = 1;
-    int64 user_id = 2;
-}
-
-message LoginReq {
-    string email = 1;
-    string password = 2;
-}
-
-message LoginRsp {
-    Status status = 1;
-    string auth_token = 2;
-}
-
-message LogoutReq {
-    string auth_token = 1;
-}
-
-message LogoutRsp {
-    Status status = 1;
 }

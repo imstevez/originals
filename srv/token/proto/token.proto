@@ -1,71 +1,81 @@
 syntax = "proto3";
 
-package token;
+package proto;
 
 service Token {
-	rpc GetInviteToken(GetInviteTokenReq) returns (GetInviteTokenRsp) {};
-    rpc VerifyInviteToken(VerifyInviteTokenReq) returns (VerifyInviteTokenRsp) {};
-    rpc GetAuthToken(GetAuthTokenReq) returns (GetAuthTokenRsp) {};
-    rpc VerifyAuthToken(VerifyAuthTokenReq) returns (VerifyAuthTokenRsp) {};
+    rpc GetRegisterToken(GetRegisterTokenReq) returns (GetRegisterTokenRsp) {};
+    rpc VerifyRegisterToken(VerifyRegisterTokenReq) returns (VerifyRegisterTokenRsp) {};
+    rpc GetLoginToken(GetLoginTokenReq) returns (GetLoginTokenRsp) {};
+    rpc VerifyLoginToken(VerifyLoginTokenReq) returns (VerifyLoginTokenRsp) {};
+    rpc RefreshLoginToken(RefreshLoginTokenReq) returns (RefreshLoginTokenRsp) {};
     rpc CancelToken(CancelTokenReq) returns (CancelTokenRsp) {};
 }
 
-enum Status {
-    Empty          = 0;
-    OK             = 200;
-    TokenRefreshed = 201;
-    ParamInvalid   = 300;
-    TokenInvalid   = 400;
-    TokenExpired   = 401;
-    TokenCanceled  = 402;
+enum TokenStatus {
+    OK = 0;
+    INVALID = 1;
+    EXPIRED = 2;
+    CANCELED = 3;
 }
 
-message InviteClaims {
+message RegisterTokenClaims {
     string email = 1;
+    int64 expires_at = 2;
 }
-message GetInviteTokenReq {
-    InviteClaims claims = 1;
-}
-
-message GetInviteTokenRsp {
-    Status status = 1;
-    string token = 2;
+message GetRegisterTokenReq {
+    RegisterTokenClaims claims = 1;
+    string secret_key = 2;
 }
 
-message VerifyInviteTokenReq {
+message GetRegisterTokenRsp {
     string token = 1;
 }
 
-message VerifyInviteTokenRsp {
-    Status status =1;
-    InviteClaims claims = 2;
+message VerifyRegisterTokenReq {
+    string token = 1;
+    string secret_key = 2;
 }
 
-message AuthClaims {
+message VerifyRegisterTokenRsp {
+    TokenStatus token_status = 1;
+    RegisterTokenClaims claims = 2;
+}
+
+message LoginTokenClaims {
     int64 user_id = 1;
     string email = 2;
-    string mobile = 3;
-    string nickname = 4;
-    string image_url = 5;
+    string nickname = 3;
+    string avatar = 4;
+    int64 expires_at = 5;
 }
 
-message GetAuthTokenReq {
-    AuthClaims claims = 1;
+message GetLoginTokenReq {
+    LoginTokenClaims claims = 1;
+    string secret_key = 2;
 }
 
-message GetAuthTokenRsp {
-    Status status = 1;
-    string token = 2;
-}
-
-message VerifyAuthTokenReq {
+message GetLoginTokenRsp {
     string token = 1;
 }
 
-message VerifyAuthTokenRsp {
-    Status status = 1;
-    AuthClaims claims = 2;
-    string fresh_token = 3;
+message VerifyLoginTokenReq {
+    string token = 1;
+    string secret_key = 2;
+}
+
+message VerifyLoginTokenRsp {
+    TokenStatus token_status = 1;
+    LoginTokenClaims claims = 2;
+}
+
+message RefreshLoginTokenReq {
+    string token = 1;
+    int64 add_seconds = 2;
+    string secret_key = 3;
+}
+
+message RefreshLoginTokenRsp {
+    string token = 1;
 }
 
 message CancelTokenReq {
@@ -73,6 +83,5 @@ message CancelTokenReq {
 }
 
 message CancelTokenRsp {
-    Status status = 1;
+    // Empty
 }
-

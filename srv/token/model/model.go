@@ -19,9 +19,8 @@ const (
 var ErrKeyNotExist = errors.New("key is not exist")
 
 // CancelToken
-func (mdl *TokenModel) CancelToken(token string, expiredAt time.Time) error {
+func (mdl *TokenModel) CancelToken(token string, expiration time.Duration) error {
 	key := cancelTokenScope + ":" + token
-	expiration := time.Until(expiredAt)
 	if err := mdl.Redis.Set(key, token, expiration).Err(); err != nil {
 		return err
 	}
@@ -38,7 +37,7 @@ func (mdl *TokenModel) IsTokenCanceled(token string) (bool, error) {
 	return val > 0, err
 }
 
-// GetFreshToken
+// GetRefreshToken
 func (mdl *TokenModel) GetFreshToken(token string) (string, error) {
 	key := freshTokenScope + ":" + token
 	val, err := mdl.Redis.Get(key).Result()
@@ -51,10 +50,10 @@ func (mdl *TokenModel) GetFreshToken(token string) (string, error) {
 	return val, err
 }
 
-// SetFreshToken
-func (mdl *TokenModel) SetFreshToken(oldToken, newToken string, freshLive time.Duration) error {
+// SetRefreshToken
+func (mdl *TokenModel) SetRefreshToken(oldToken, newToken string, expiration time.Duration) error {
 	key := freshTokenScope + ":" + oldToken
-	if err := mdl.Redis.Set(key, newToken, freshLive).Err(); err != nil {
+	if err := mdl.Redis.Set(key, newToken, expiration).Err(); err != nil {
 		return err
 	}
 	return nil

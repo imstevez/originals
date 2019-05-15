@@ -2,10 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"originals/email"
-	tokenSrvProto "originals/srv/token/proto"
-	userSrvProto "originals/srv/user/proto"
-	"regexp"
+	tokenProto "originals/srv/token/proto"
+	userProto "originals/srv/user/proto"
 	"time"
 
 	"golang.org/x/net/context"
@@ -13,28 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type User struct {
-	UserSrv  userSrvProto.UserService
-	TokenSrv tokenSrvProto.TokenService
-}
-
-type Rsp struct {
-	Code    int64                  `json:"code"`
-	Message string                 `json:"message"`
-	Result  map[string]interface{} `json:"result,omitempty"`
-}
-
 const (
-	passwordReg = `^[a-zA-Z0-9]{4,16}$`
-	emailReg    = `\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*`
-	nickNameReg = `[a-zA-Z0-9]{4,16}`
-)
-
-type RegisterReq struct {
-	Email string `json:"email"`
-}
-
-const registerEmailBody = `
+	registerTokenLive      = 30
+	registerTokenSecretKey = "register_token_secret_key"
+	registerInfoContextKey = "register_info"
+	registerEmailBody      = `
 <!doctype html>
 <html>
 	<body>
@@ -53,310 +36,251 @@ const registerEmailBody = `
 </html>
 `
 
-// Register
+	loginTokenLive      = 30
+	loginTokenSecretKey = "login_token_secret_key"
+	loginTokenHeaderKey = "x-login-token"
+	loginInfoContextKey = "login_info"
+	avatarUri           = "http://localhost:8080/user/statics/avatar/"
+
+	// Response code
+	codeSuccess         = 200
+	codeParamErr        = 300
+	codeEmailRegistered = 301
+	codeEmailSendFailed = 302
+	codeUserNotExist    = 303
+	codePasswordError   = 304
+)
+
+type User struct {
+	TokenSrv tokenProto.TokenService
+	UserSrv  userProto.UserService
+}
+
+type RegisterReq struct {
+	Email string `json:"email" binding:"email,required"`
+}
+
+// Register 验证用户邮箱, 并发送注册邮件
 func (u *User) Register(ctx *gin.Context) {
-	var (
-		req RegisterReq
-		rsp Rsp
-	)
-	if err := ctx.Bind(&req); err != nil {
-		rsp.Code = 301
-		rsp.Message = "param error: " + err.Error()
-		ctx.JSON(200, rsp)
+	// 绑定请求参数
+	var req RegisterReq
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{"code": codeParamErr,
+			"message": err.Error(),
+		})
 		return
 	}
-	if !regVerify(req.Email, emailReg) {
-		rsp.Code = 302
-		rsp.Message = "email invalid"
-		ctx.JSON(200, rsp)
-		return
-	}
-	isEmailRegisteredRsp, err := u.UserSrv.IsEmailRegistered(context.TODO(), &userSrvProto.IsEmailRegisteredReq{
+
+	// 验证邮箱是否已注册
+	isEmailRegisteredRsp, err := u.UserSrv.IsEmailRegistered(context.TODO(), &userProto.IsEmailRegisteredReq{
 		Email: req.Email,
 	})
 	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "Internal error: " + err.Error()
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 	if isEmailRegisteredRsp.Registered {
-		rsp.Code = 303
-		rsp.Message = "email has been registered"
-		ctx.JSON(200, rsp)
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    codeEmailRegistered,
+			"message": "email has been registered",
+		})
 	}
 
-	getInviteTokenRsp, err := u.TokenSrv.GetInviteToken(ctx, &tokenSrvProto.GetInviteTokenReq{
-		Claims: &tokenSrvProto.InviteClaims{
-			Email: req.Email,
+	// 获取注册token
+	getRegiserTokenRsp, err := u.TokenSrv.GetRegisterToken(ctx, &tokenProto.GetRegisterTokenReq{
+		Claims: &tokenProto.RegisterTokenClaims{
+			Email:     req.Email,
+			ExpiresAt: time.Now().Add(registerTokenLive * time.Minute).Unix(),
 		},
+		SecretKey: registerTokenSecretKey,
 	})
 	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "Internal error: " + err.Error()
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
-	mailBody := fmt.Sprintf(registerEmailBody, getInviteTokenRsp.Token, getInviteTokenRsp.Token)
+	// 发送注册邮件
+	mailBody := fmt.Sprintf(registerEmailBody, getRegiserTokenRsp.Token, getRegiserTokenRsp.Token)
 	registerMail := &email.Email{
 		Recivers: []string{req.Email},
 		Subject:  "Originals-起源-Beta v1.0 注册测试邮件",
 		Body:     mailBody,
 	}
 	if err := email.SendMail(registerMail); err != nil {
-		rsp.Code = 304
-		rsp.Message = "email send failed"
-		ctx.JSON(200, rsp)
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    codeEmailSendFailed,
+			"message": "register email send failed",
+		})
 		return
 	}
 
-	rsp.Code = 200
-	rsp.Message = "success"
-	rsp.Result = map[string]interface{}{
-		"invite_token": getInviteTokenRsp.Token,
-	}
-
-	ctx.JSON(200, rsp)
+	// 注册成功
+	ctx.JSON(200, gin.H{
+		"code":    codeSuccess,
+		"message": "register success",
+	})
 	return
 }
 
-// Complete
+// Complete 创建用户, 完成用户注册
+//
+// TODO: 表单信息较验
+//
 func (u *User) Complete(ctx *gin.Context) {
-	var (
-		createUserReq userSrvProto.CreateUserReq
-		ok            bool
-		rsp           Rsp
-	)
-	token := ctx.GetHeader("x-originals-token")
-	if token == "" {
-		rsp.Code = 301
-		rsp.Message = "token is empty"
-		ctx.JSON(200, rsp)
-		return
-	}
-	verifyInviteTokenRsp, err := u.TokenSrv.VerifyInviteToken(context.TODO(), &tokenSrvProto.VerifyInviteTokenReq{
-		Token: token,
-	})
-	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "internal error: " + err.Error()
-		ctx.JSON(200, rsp)
-		return
-	}
-	createUserReq.Email = verifyInviteTokenRsp.Claims.Email
+	// 提取用户注册权限验证上下文
+	registerInfo := ctx.MustGet(registerInfoContextKey).(map[string]interface{})
+	regEmail := registerInfo["email"].(string)
 
-	isEmailRegisteredRsp, err := u.UserSrv.IsEmailRegistered(context.TODO(), &userSrvProto.IsEmailRegisteredReq{
-		Email: createUserReq.Email,
-	})
-	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "Internal error: " + err.Error()
-		ctx.JSON(200, rsp)
-		return
-	}
-	if isEmailRegisteredRsp.Registered {
-		rsp.Code = 302
-		rsp.Message = "email has been registered"
-		ctx.JSON(200, rsp)
-	}
-
+	// 解析请求参数
+	password := ctx.PostForm("password")
+	nickname := ctx.PostForm("nickname")
 	avatarFile, err := ctx.FormFile("avatar")
 	if err != nil {
-		rsp.Code = 303
-		rsp.Message = "avatar image error"
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
+		return
 	}
+
+	// 保存用户头像图片
+	avatar := avatarUri + "default.png"
 	if avatarFile != nil {
-		dst := fmt.Sprintf("./file/avatar/%s_%s", time.Now().Unix(), avatarFile.Filename)
+		fileName := fmt.Sprintf("%d_%s", time.Now().Unix(), avatarFile.Filename)
+		dst := fmt.Sprintf("./statics/avatar/%s", fileName)
 		if err := ctx.SaveUploadedFile(avatarFile, dst); err != nil {
-			rsp.Code = 500
-			rsp.Message = "internal error: " + err.Error()
-			ctx.JSON(200, rsp)
+			ctx.Status(500)
 			return
 		}
+		avatar = avatarUri + fileName
 	}
 
-	if inviteToken, ok = ctx.GetPostForm("token"); !ok {
-		rsp.Code = 301
-		rsp.Message = "invite_token empty"
-		ctx.JSON(200, rsp)
-		return
-	}
-
-	if registerReq.Password, ok = ctx.GetPostForm("password"); !ok {
-		rsp.Code = 301
-		rsp.Message = "password undefined"
-		ctx.JSON(200, rsp)
-		return
-	}
-	if !regVerify(registerReq.Password, passwordReg) {
-		rsp.Code = 301
-		rsp.Message = "password invalid"
-		ctx.JSON(200, rsp)
-		return
-	}
-	if registerReq.Nickname, ok = ctx.GetPostForm("nickname"); !ok {
-		rsp.Code = 301
-		rsp.Message = "nickname undefined"
-		ctx.JSON(200, rsp)
-		return
-	}
-	if !regVerify(registerReq.Nickname, nickNameReg) {
-		rsp.Code = 301
-		rsp.Message = "nickname invalid"
-		ctx.JSON(200, rsp)
-		return
-	}
-	registerReq.Mobile, _ = ctx.GetPostForm("mobile")
-	registerReq.ImageUrl, _ = ctx.GetPostForm("image_url")
-	tokenSrvRsp, err := u.TokenSrv.VerifyInviteToken(context.TODO(), &tokenSrvProto.VerifyInviteTokenReq{
-		Token: inviteToken,
+	// 创建用户
+	createNewUserRsp, err := u.UserSrv.CreateNewUser(context.TODO(), &userProto.CreateNewUserReq{
+		Email:    regEmail,
+		Password: password,
+		Nickname: nickname,
+		Avatar:   avatar,
 	})
 	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "internal error: " + err.Error()
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
-	switch tokenSrvRsp.Status {
-	case tokenSrvProto.Status_OK:
-		registerReq.Email = tokenSrvRsp.Claims.Email
-	case tokenSrvProto.Status_TokenInvalid:
-		rsp.Code = 401
-		rsp.Message = "invite_token invalid"
-		ctx.JSON(200, rsp)
-		return
-	case tokenSrvProto.Status_TokenExpired:
-		rsp.Code = 402
-		rsp.Message = "invite_token expired"
-		ctx.JSON(200, rsp)
-		return
-	default:
-		rsp.Code = 500
-		rsp.Message = "internal error"
-		ctx.JSON(200, rsp)
+
+	// 用户已完成注册
+	if createNewUserRsp.UserId == 0 {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    codeEmailRegistered,
+			"message": "email register has been completed",
+		})
 		return
 	}
-	userSrvRsp, err := u.UserSrv.Register(context.TODO(), &registerReq)
-	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "internal error: " + err.Error()
-		ctx.JSON(200, rsp)
-		return
-	}
-	switch userSrvRsp.Status {
-	case userSrvProto.Status_OK:
-		rsp.Code = 200
-		rsp.Message = "success"
-		rsp.Result = map[string]interface{}{
-			"user_id": userSrvRsp.UserId,
-		}
-	case userSrvProto.Status_EmailRegistered:
-		rsp.Code = 302
-		rsp.Message = "email registered"
-	default:
-		rsp.Code = 500
-		rsp.Message = "internal error"
-	}
-	ctx.JSON(200, rsp)
+
+	// 完成注册成功
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "complete success",
+		"user_id": createNewUserRsp.UserId,
+	})
 	return
 }
 
-// Login
+type loginReq struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// Login 用户登陆接口
 func (u *User) Login(ctx *gin.Context) {
-	var (
-		loginReq userSrvProto.LoginReq
-		rsp      Rsp
-		ok       bool
-	)
-	if loginReq.Email, ok = ctx.GetPostForm("email"); !ok {
-		rsp.Code = 301
-		rsp.Message = "email empty"
-		ctx.JSON(200, rsp)
-		return
-	}
-	if loginReq.Password, ok = ctx.GetPostForm("password"); !ok {
-		rsp.Code = 301
-		rsp.Message = "password empty"
-		ctx.JSON(200, rsp)
+	// 绑定请求参数
+	var req loginReq
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    codeParamErr,
+			"message": err.Error(),
+		})
 		return
 	}
 
-	loginRsp, err := u.UserSrv.Login(context.TODO(), &loginReq)
+	// 用户验证
+	verifyUserRsp, err := u.UserSrv.VerifyUser(context.TODO(), &userProto.VerifyUserReq{
+		Email:    req.Email,
+		Password: req.Password,
+	})
 	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "internal error: " + err.Error()
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
-	switch loginRsp.Status {
-	case userSrvProto.Status_OK:
-		rsp.Code = 200
-		rsp.Message = "success"
-		rsp.Result = map[string]interface{}{
-			"token": loginRsp.AuthToken,
+
+	// 登陆信息验证失败
+	if verifyUserRsp.VerifyStatus != userProto.UserVerifyStatus_OK {
+		userVerifyStatusToRsp := map[userProto.UserVerifyStatus]gin.H{
+			userProto.UserVerifyStatus_NOT_EXIST: gin.H{
+				"code":    codeUserNotExist,
+				"message": "user is not exist",
+			},
+			userProto.UserVerifyStatus_PWD_ERROR: gin.H{
+				"code":    codePasswordError,
+				"message": "password is wrong",
+			},
 		}
-	case userSrvProto.Status_UserNotExist:
-		rsp.Code = 401
-		rsp.Message = "email not exist"
-	case userSrvProto.Status_PasswordWrong:
-		rsp.Code = 402
-		rsp.Message = "password wrong"
-	default:
-		rsp.Code = 500
-		rsp.Message = "internal error"
-	}
-	ctx.JSON(200, rsp)
-	return
-}
-
-// Logout
-func (u *User) Logout(ctx *gin.Context) {
-	var (
-		logoutReq userSrvProto.LogoutReq
-		rsp       Rsp
-	)
-	logoutReq.AuthToken = ctx.GetHeader("x-originals-token")
-	if logoutReq.AuthToken == "" {
-		rsp.Code = 301
-		rsp.Message = "token empty"
-		ctx.JSON(200, rsp)
+		ctx.JSON(http.StatusOK, userVerifyStatusToRsp[verifyUserRsp.VerifyStatus])
 		return
 	}
-	logoutRsp, err := u.UserSrv.Logout(context.TODO(), &logoutReq)
+
+	// 获取登陆token
+	getLoginTokenRsp, err := u.TokenSrv.GetLoginToken(context.TODO(), &tokenProto.GetLoginTokenReq{
+		Claims: &tokenProto.LoginTokenClaims{
+			UserId:    verifyUserRsp.UserInfo.UserId,
+			Email:     verifyUserRsp.UserInfo.Email,
+			Nickname:  verifyUserRsp.UserInfo.Nickname,
+			Avatar:    verifyUserRsp.UserInfo.Avatar,
+			ExpiresAt: time.Now().Add(loginTokenLive * time.Minute).Unix(),
+		},
+		SecretKey: loginTokenSecretKey,
+	})
 	if err != nil {
-		rsp.Code = 500
-		rsp.Message = "internal error: " + err.Error()
-		ctx.JSON(200, rsp)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
-	switch logoutRsp.Status {
-	case userSrvProto.Status_OK:
-		rsp.Code = 200
-		rsp.Message = "success"
-		ctx.Header("x-originals-token", "")
-	default:
-		rsp.Code = 500
-		rsp.Message = "internal error"
-	}
-	ctx.JSON(200, rsp)
+
+	// 登陆成功
+	ctx.Header(loginTokenHeaderKey, getLoginTokenRsp.Token)
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    codeSuccess,
+		"message": "login success",
+	})
 	return
 }
 
-// List
-func (u *User) Profile(ctx *gin.Context) {
-	user := make(map[string]interface{})
-	user["user_id"] = ctx.MustGet("user_id").(int64)
-	user["email"] = ctx.MustGet("email").(string)
-	user["mobile"] = ctx.MustGet("mobile").(string)
-	user["nickname"] = ctx.MustGet("nickname").(string)
-	user["image_url"] = ctx.MustGet("image_url").(string)
-	ctx.JSON(200, gin.H{"code": 200, "result": user})
+// Logout 退出登陆
+func (u *User) Logout(ctx *gin.Context) {
+	// 获取授权token
+	token := ctx.GetHeader(loginTokenHeaderKey)
+	if token == "" {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
+	// 注销token
+	if _, err := u.TokenSrv.CancelToken(context.TODO(), &tokenProto.CancelTokenReq{
+		Token: token,
+	}); err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	// 退出登陆成功
+	ctx.JSON(200, gin.H{
+		"code":    codeSuccess,
+		"message": "logout success",
+	})
+	return
 }
 
-// regVerfy
-func regVerify(str, pattern string) bool {
-	reg := regexp.MustCompile(pattern)
-	return reg.MatchString(str)
+// Profile 获取用户基础信息数据
+func (u *User) Profile(ctx *gin.Context) {
+	userInfo := ctx.MustGet(loginInfoContextKey).(map[string]interface{})
+	ctx.JSON(200, gin.H{
+		"code":    codeSuccess,
+		"message": "success",
+		"data":    userInfo,
+	})
 }

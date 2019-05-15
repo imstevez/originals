@@ -8,24 +8,24 @@ import (
 )
 
 func main() {
-	// Load Configs
+	// 初始化全局配置
 	if err := conf.InitConf(); err != nil {
 		log.Fatal(err)
 	}
 
-	// New service
+	// 新建服务
 	service := micro.NewService(
 		micro.Name("go.micro.srv.user"),
 		micro.Version("v1.0"),
 	)
 
-	// Initialise service
+	// 初始化服务
 	service.Init(
 		initMysqlDB,
 		registerHandler,
 	)
 
-	// Run services
+	// 运行服务
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
 	}

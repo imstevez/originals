@@ -3,198 +3,208 @@ package handler
 import (
 	"context"
 	"originals/srv/token/model"
-	proto "originals/srv/token/proto"
+	"originals/srv/token/proto"
+	"strings"
 	"sync"
 	"time"
+
+	"shendu.com/encoding/json"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
 type Token struct {
-	freshTokenMu sync.Mutex
-	Model        *model.TokenModel
+	reFreshTokenMu sync.Mutex
+	Model          *model.TokenModel
 }
 
-const (
-	inviteTokenKey = "invite_token_key"
-	authTokenKey   = "auth_token_key"
-)
-
-var (
-	inviteTokenLive    = 20 * time.Minute
-	authTokenLive      = 20 * time.Minute
-	authTokenFreshLive = 20 * time.Minute
-)
-
-type inviteTokenClaims struct {
+type registerTokenClaims struct {
 	Email string `json:"email"`
 	jwt.StandardClaims
 }
 
-type authTokenClaims struct {
-	UserId   int64  `json:"user_id"`
-	Email    string `json:"email"`
-	Mobile   string `json:"mobile"`
-	NickName string `json:"nick_name"`
-	ImageUrl string `json:"image_url"`
-	jwt.StandardClaims
-}
-
-// GetInviteToken
-func (t *Token) GetInviteToken(ctx context.Context, req *proto.GetInviteTokenReq, rsp *proto.GetInviteTokenRsp) error {
-	if req.Claims == nil {
-		rsp.Status = proto.Status_ParamInvalid
-		return nil
-	}
-	claims := inviteTokenClaims{
+// GetRegisterToken 获取生成用户注册token
+func (t *Token) GetRegisterToken(ctx context.Context, req *proto.GetRegisterTokenReq, rsp *proto.GetRegisterTokenRsp) (err error) {
+	claims := registerTokenClaims{
 		Email: req.Claims.Email,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Add(inviteTokenLive).Unix(),
+			ExpiresAt: req.Claims.ExpiresAt,
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(inviteTokenKey))
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	rsp.Token, err = token.SignedString([]byte(req.SecretKey))
+	return
+}
+
+// VerifyRegisterToken 解析，验证用户注册token
+func (t *Token) VerifyRegisterToken(ctx context.Context, req *proto.VerifyRegisterTokenReq, rsp *proto.VerifyRegisterTokenRsp) (err error) {
+	// Token是否已被取消
+	canceled, err := t.Model.IsTokenCanceled(req.Token)
 	if err != nil {
 		return err
 	}
-	rsp.Status = proto.Status_OK
-	rsp.Token = tokenStr
-	return nil
-}
+	if canceled {
+		rsp.TokenStatus = proto.TokenStatus_CANCELED
+		return
+	}
 
-// VerifyInviteToken
-func (t *Token) VerifyInviteToken(ctx context.Context, req *proto.VerifyInviteTokenReq, rsp *proto.VerifyInviteTokenRsp) error {
-	claims := inviteTokenClaims{}
+	// 解析token
+	claims := registerTokenClaims{}
 	token, err := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(inviteTokenKey), nil
+		return []byte(req.SecretKey), nil
 	})
 	if token != nil {
-		rsp.Claims = &proto.InviteClaims{
-			Email: claims.Email,
+		rsp.Claims = &proto.RegisterTokenClaims{
+			Email:     claims.Email,
+			ExpiresAt: claims.ExpiresAt,
 		}
 	}
+
+	// 验证token, 过期设置TokenStatus_INVALID状态, 其它设置TokenStatus_INVALID状态
 	if err != nil {
 		if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
-			rsp.Status = proto.Status_TokenInvalid
-			return nil
+			rsp.TokenStatus = proto.TokenStatus_INVALID
+			return
 		}
-		rsp.Status = proto.Status_TokenExpired
-		return nil
+		rsp.TokenStatus = proto.TokenStatus_EXPIRED
+		return
 	}
-	rsp.Status = proto.Status_OK
-	return nil
+
+	// 合法token, 返回OK状态
+	rsp.TokenStatus = proto.TokenStatus_OK
+	return
 }
 
-// GetAuthToken
-func (t *Token) GetAuthToken(ctx context.Context, req *proto.GetAuthTokenReq, rsp *proto.GetAuthTokenRsp) error {
-	if req.Claims == nil {
-		rsp.Status = proto.Status_ParamInvalid
-		return nil
-	}
-	claims := authTokenClaims{
+type loginTokenClaims struct {
+	UserId   int64  `json:"user_id"`
+	Email    string `json:"email"`
+	NickName string `json:"nick_name"`
+	Avatar   string `json:"avatar"`
+	jwt.StandardClaims
+}
+
+// GetLoginToken 获取生成用户登陆token
+func (t *Token) GetLoginToken(ctx context.Context, req *proto.GetLoginTokenReq, rsp *proto.GetLoginTokenRsp) (err error) {
+	claims := loginTokenClaims{
 		UserId:   req.Claims.UserId,
 		Email:    req.Claims.Email,
-		Mobile:   req.Claims.Mobile,
 		NickName: req.Claims.Nickname,
-		ImageUrl: req.Claims.ImageUrl,
+		Avatar:   req.Claims.Avatar,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Add(authTokenLive).Unix(),
+			ExpiresAt: req.Claims.ExpiresAt,
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(authTokenKey))
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	rsp.Token, err = token.SignedString([]byte(req.SecretKey))
+	return
+}
+
+// VerifyLoginToken 解析, 验证用户登陆token
+func (t *Token) VerifyLoginToken(ctx context.Context, req *proto.VerifyLoginTokenReq, rsp *proto.VerifyLoginTokenRsp) (err error) {
+	// Token是否已被取消
+	canceled, err := t.Model.IsTokenCanceled(req.Token)
 	if err != nil {
 		return err
 	}
-	rsp.Status = proto.Status_OK
-	rsp.Token = tokenStr
-	return nil
-}
-
-// VerifyAuthToken
-func (t *Token) VerifyAuthToken(ctx context.Context, req *proto.VerifyAuthTokenReq, rsp *proto.VerifyAuthTokenRsp) error {
-	if canceled, err := t.Model.IsTokenCanceled(req.Token); err != nil {
-		return err
-	} else if canceled {
-		rsp.Status = proto.Status_TokenCanceled
-		return nil
+	if canceled {
+		rsp.TokenStatus = proto.TokenStatus_CANCELED
+		return
 	}
 
-	claims := authTokenClaims{}
+	// 解析token
+	claims := loginTokenClaims{}
 	token, err := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(authTokenKey), nil
+		return []byte(req.SecretKey), nil
 	})
 	if token != nil {
-		rsp.Claims = &proto.AuthClaims{
-			UserId:   claims.UserId,
-			Email:    claims.Email,
-			Mobile:   claims.Mobile,
-			Nickname: claims.NickName,
-			ImageUrl: claims.ImageUrl,
+		rsp.Claims = &proto.LoginTokenClaims{
+			UserId:    claims.UserId,
+			Email:     claims.Email,
+			Nickname:  claims.NickName,
+			Avatar:    claims.Avatar,
+			ExpiresAt: claims.ExpiresAt,
 		}
 	}
 
-	if err == nil {
-		rsp.Status = proto.Status_OK
-		return nil
-	}
-
-	if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
-		rsp.Status = proto.Status_TokenInvalid
-		return nil
-	}
-
-	freshDeadLine := time.Unix(claims.ExpiresAt, 0).Add(authTokenFreshLive)
-	if time.Now().After(freshDeadLine) {
-		rsp.Status = proto.Status_TokenExpired
-		return nil
-	}
-
-	t.freshTokenMu.Lock()
-	defer t.freshTokenMu.Unlock()
-	if freshToken, err := t.Model.GetFreshToken(req.Token); err == nil {
-		rsp.Status = proto.Status_TokenRefreshed
-		rsp.FreshToken = freshToken
-		return nil
-	} else if err == model.ErrKeyNotExist {
-		claims.IssuedAt = time.Now().Unix()
-		claims.ExpiresAt = time.Now().Add(authTokenLive).Unix()
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		freshToken, err := token.SignedString([]byte(authTokenKey))
-		if err != nil {
-			return err
+	// 验证token, 过期设置TokenStatus_INVALID状态, 其它设置TokenStatus_INVALID状态
+	if err != nil {
+		if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
+			rsp.TokenStatus = proto.TokenStatus_INVALID
+			return
 		}
-
-		err = t.Model.SetFreshToken(req.Token, freshToken, authTokenFreshLive)
-		if err != nil {
-			return err
-		}
-
-		rsp.Status = proto.Status_TokenRefreshed
-		rsp.FreshToken = freshToken
-		return nil
-	} else {
-		return err
+		rsp.TokenStatus = proto.TokenStatus_EXPIRED
+		return
 	}
+
+	// 合法token, 返回OK状态
+	rsp.TokenStatus = proto.TokenStatus_OK
+	return
 }
 
-// CancelAuthToken
-func (t *Token) CancelToken(ctx context.Context, req *proto.CancelTokenReq, rsp *proto.CancelTokenRsp) error {
-	claims := authTokenClaims{}
-	token, _ := jwt.ParseWithClaims(req.Token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(authTokenKey), nil
-	})
-	if token == nil || !token.Valid {
-		rsp.Status = proto.Status_TokenInvalid
-		return nil
+// RefreshLoginToken 刷新用户登陆token
+//
+// 用于token临期等场景下的token更新, 方法将在原Claims的基础上, 更新
+// IssuedAt和ExpiresAt属性, 并生成新的登陆token, 为了防止同一个token
+// 并发刷新时生成多个新token, 新生成的token将被置入缓存, 当token已被
+// 刷新时, 将直接返回缓存的刷新token
+//
+// 缓存刷新token将以原token为键新token为值, 缓存到原token过期失效
+//
+func (t *Token) RefreshLoginToken(ctx context.Context, req *proto.RefreshLoginTokenReq, rsp *proto.RefreshLoginTokenRsp) (err error) {
+	// 加锁, 防止并发刷新
+	t.reFreshTokenMu.Lock()
+	defer t.reFreshTokenMu.Unlock()
+
+	// 查询Token刷新缓存
+	rsp.Token, err = t.Model.GetFreshToken(req.Token)
+	if err == nil || err != model.ErrKeyNotExist {
+		return
 	}
 
-	err := t.Model.CancelToken(req.Token, time.Unix(claims.ExpiresAt, 0).Add(authTokenFreshLive))
+	// 解析Payload
+	decodeBytes, err := jwt.DecodeSegment(strings.Split(req.Token, ".")[1])
 	if err != nil {
 		return err
 	}
-	rsp.Status = proto.Status_OK
-	return nil
+	var claims loginTokenClaims
+	err = json.Unmarshal(decodeBytes, &claims)
+	if err != nil {
+		return
+	}
+
+	// 生成新token
+	cacheLive := time.Unix(claims.ExpiresAt, 0).Sub(time.Now())
+	claims.IssuedAt = time.Now().Unix()
+	claims.ExpiresAt += req.AddSeconds
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	rsp.Token, err = token.SignedString([]byte(req.SecretKey))
+
+	// 缓存刷新token
+	err = t.Model.SetRefreshToken(req.Token, rsp.Token, cacheLive)
+	if err != nil {
+		return err
+	}
+	return
+}
+
+// CancelToken 取消token
+func (t *Token) CancelToken(ctx context.Context, req *proto.CancelTokenReq, rsp *proto.CancelTokenRsp) (err error) {
+	decodeBytes, err := jwt.DecodeSegment(strings.Split(req.Token, ".")[1])
+	if err != nil {
+		return err
+	}
+	var claims loginTokenClaims
+	err = json.Unmarshal(decodeBytes, &claims)
+	if err != nil {
+		return
+	}
+
+	expiration := time.Until(time.Unix(claims.ExpiresAt, 0))
+	err = t.Model.CancelToken(req.Token, expiration)
+	if err != nil {
+		return err
+	}
+	return
 }

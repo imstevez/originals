@@ -2,16 +2,15 @@ package main
 
 import (
 	"originals/sql"
-	tokenProto "originals/srv/token/proto"
 	"originals/srv/user/handler"
 	"originals/srv/user/model"
-	proto "originals/srv/user/proto"
+	"originals/srv/user/proto"
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
 )
 
-// Initialize mysql database
+// 初始化mysql数据库
 func initMysqlDB(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
 		log.Log("Initializing mysql database")
@@ -34,17 +33,15 @@ func initMysqlDB(o *micro.Options) {
 	})
 }
 
-// Register handler
+// 注册handler
 func registerHandler(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
 		log.Log("Register handler")
-		tokenCli := tokenProto.NewTokenService("go.micro.srv.token", o.Client)
 		if err := proto.RegisterUserHandler(o.Server,
 			&handler.User{
 				Model: &model.UserModel{
 					DB: sql.MysqlDB,
 				},
-				TokenCli: tokenCli,
 			}); err != nil {
 			return err
 		}

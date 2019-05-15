@@ -6,22 +6,21 @@ import (
 )
 
 func main() {
-
-	// New service
+	// 新建服务
 	service := web.NewService(
 		web.Name("go.micro.api.user"),
 		web.Version("v1.0"),
 	)
 
-	// Initialise service
+	// 初始化服务
 	if err := service.Init(); err != nil {
 		log.Fatal(err)
 	}
 
-	// Register handler
-	service.Handle("/", initRouter())
+	// 注册路由handler
+	service.Handle("/", router())
 
-	// Run services
+	// 运行服务
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
 	}

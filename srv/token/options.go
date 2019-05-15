@@ -4,13 +4,13 @@ import (
 	"originals/redis"
 	"originals/srv/token/handler"
 	"originals/srv/token/model"
-	proto "originals/srv/token/proto"
+	"originals/srv/token/proto"
 
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro"
 )
 
-// Initialize redis
+// 初始化redis
 func initRedis(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
 		log.Log("Initializing redis")
@@ -32,10 +32,10 @@ func initRedis(o *micro.Options) {
 	})
 }
 
-// Register handler
+// 注册handler
 func registerHandler(o *micro.Options) {
 	o.BeforeStart = append(o.BeforeStart, func() error {
-		log.Log("Register token handler")
+		log.Log("Register token service handler")
 		if err := proto.RegisterTokenHandler(o.Server,
 			&handler.Token{
 				Model: &model.TokenModel{
