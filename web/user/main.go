@@ -8,19 +8,17 @@ import (
 )
 
 func main() {
-
-	// New service
 	service := web.NewService(
 		web.Name("go.micro.web.user"),
 		web.Version("v1.0"),
 	)
 
-	// Initialise service
-	service.Init()
+	if err := service.Init(); err != nil {
+		log.Fatal(err)
+	}
 
-	service.Handle("/", http.FileServer(http.Dir("originals-user/build")))
+	service.Handle("/", http.FileServer(http.Dir("./htmls/build/")))
 
-	// Run services
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
 	}

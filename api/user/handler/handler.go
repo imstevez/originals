@@ -26,7 +26,7 @@ const (
 			<p>Hi there,</p>
 			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
 			<a href="http://localhost:3000/complete/%s"><i>Account Setting</i></a></p>
-			<p>If the link above doesn't work, please copy this link to your browser: <b>http://localhost:3000/complete/%s</b></p>
+			<p>If the link above doesn't work, please copy this link to your browser:<br> <b>http://localhost:3000/complete/%s</b></p>
 			<p><b>Thanks</b></p>
 		</article>
 		<footer>
@@ -137,28 +137,25 @@ func (u *User) Complete(ctx *gin.Context) {
 	// 提取用户注册权限验证上下文
 	registerInfo := ctx.MustGet(registerInfoContextKey).(map[string]interface{})
 	regEmail := registerInfo["email"].(string)
+	avatar := ""
 
 	// 解析请求参数
 	password := ctx.PostForm("password")
 	nickname := ctx.PostForm("nickname")
 	avatarFile, err := ctx.FormFile("avatar")
-	if err != nil {
-		logErr("srv.file", "FormFile", err)
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	// 保存用户头像图片
-	avatar := avatarUri + "default.png"
-	if avatarFile != nil {
-		fileName := fmt.Sprintf("%d_%s", time.Now().Unix(), avatarFile.Filename)
-		dst := fmt.Sprintf("./statics/avatar/%s", fileName)
-		if err := ctx.SaveUploadedFile(avatarFile, dst); err != nil {
-			logErr("srv.file", "SaveUploadedFile", err)
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			return
+	if err == nil {
+		// 保存用户头像图片
+		avatar = avatarUri + "default.png"
+		if avatarFile != nil {
+			fileName := fmt.Sprintf("%d_%s", time.Now().Unix(), avatarFile.Filename)
+			dst := fmt.Sprintf("./statics/avatar/%s", fileName)
+			if err := ctx.SaveUploadedFile(avatarFile, dst); err != nil {
+				logErr("srv.file", "SaveUploadedFile", err)
+				ctx.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+			avatar = avatarUri + fileName
 		}
-		avatar = avatarUri + fileName
 	}
 
 	// 创建用户

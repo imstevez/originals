@@ -149,6 +149,7 @@ func Cors() gin.HandlerFunc {
 	allowHeaders := []string{
 		"Content-Type",
 		loginTokenHeaderKey,
+		registerTokenHeaderKey,
 	}
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Origin", "*")
@@ -178,6 +179,12 @@ func router() *gin.Engine {
 	r.Use(Cors())
 	userApi := r.Group("/user")
 	{
+		userApi.GET("/", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, gin.H{
+				"code":    200,
+				"message": "Hello, there is originals user api.",
+			})
+		})
 		userApi.Static("/statics", "./statics")
 		// 用户权限
 		authApi := userApi.Group("/auth")
