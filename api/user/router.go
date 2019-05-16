@@ -11,17 +11,26 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 )
 
 const (
+	// 登陆配置
 	loginInfoContextKey     = "login_info"
 	loginTokenHeaderKey     = "x-login-token"
 	loginTokenSecretKey     = "login_token_secret_key"
 	loginTokenRefreshPeriod = 30
-	registerInfoContextKey  = "register_info"
-	registerTokenHeaderKey  = "x-Register-token"
+
+	// 注册配置
+	registerInfoContextKey = "register_info"
+	registerTokenHeaderKey = "x-Register-token"
+	registerTokenSecretKey = "register_token_secret_key"
 )
+
+func logErr(srv, mtd string, err error) {
+	log.Logf("service: %s | method: %-24s | error: %v\n", srv, mtd, err)
+}
 
 // LogCli go-micro服务调用日志中间件
 type LogCli struct {
@@ -30,34 +39,35 @@ type LogCli struct {
 
 // Call go-micro服务调用日志中间件方法
 func (lc *LogCli) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	fmt.Printf("[service] service: %s | endpoint: %s\n", req.Service(), req.Endpoint())
+	fmt.Printf("[service] service: %-24s | endpoint: %-24s\n", req.Service(), req.Endpoint())
 	return lc.Client.Call(ctx, req, rsp)
 }
 
 var TokenStatusToMsg = map[tokenProto.TokenStatus]string{
-	tokenProto.TokenStatus_CANCELED: "register token has been canceled",
-	tokenProto.TokenStatus_INVALID:  "register token is invalid",
-	tokenProto.TokenStatus_EXPIRED:  "register token is expired",
+	tokenProto.TokenStatus_CANCELED: "token has been canceled",
+	tokenProto.TokenStatus_INVALID:  "token is invalid",
+	tokenProto.TokenStatus_EXPIRED:  "token is expired",
 }
 
+// RegisterAuth 注册完成权限验证中间件
 func RegisterAuth() gin.HandlerFunc {
 	tokenSrv := tokenProto.NewTokenService("go.micro.srv.token", &LogCli{client.DefaultClient})
 	return func(ctx *gin.Context) {
 		// 从请求头部提取注册token
 		registerToken := ctx.GetHeader(registerTokenHeaderKey)
 		if registerToken == "" {
-			ctx.Status(http.StatusUnauthorized)
-			ctx.Abort()
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		// 验证注册token
 		tokenVerifyRsp, err := tokenSrv.VerifyRegisterToken(context.TODO(), &tokenProto.VerifyRegisterTokenReq{
-			Token: registerToken,
+			Token:     registerToken,
+			SecretKey: registerTokenSecretKey,
 		})
 		if err != nil {
-			ctx.Status(http.StatusInternalServerError)
-			ctx.Abort()
+			logErr("srv.token", "VerifyRegisterToken", err)
+			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
@@ -65,6 +75,7 @@ func RegisterAuth() gin.HandlerFunc {
 		if tokenVerifyRsp.TokenStatus != tokenProto.TokenStatus_OK {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"message": TokenStatusToMsg[tokenVerifyRsp.TokenStatus]})
 			ctx.Abort()
+			return
 		}
 
 		// 设置注册用户信息数据
@@ -84,17 +95,18 @@ func LoginAuth() gin.HandlerFunc {
 		// 从请求头部提取登陆token
 		loginToken := ctx.GetHeader(loginTokenHeaderKey)
 		if loginToken == "" {
-			ctx.Status(http.StatusUnauthorized)
-			ctx.Abort()
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		// 验证登陆token
-		tokenVerifyReq := tokenProto.VerifyLoginTokenReq{Token: loginToken}
-		tokenVerifyRsp, err := tokenSrv.VerifyLoginToken(context.TODO(), &tokenVerifyReq)
+		tokenVerifyRsp, err := tokenSrv.VerifyLoginToken(context.TODO(), &tokenProto.VerifyLoginTokenReq{
+			Token:     loginToken,
+			SecretKey: loginTokenSecretKey,
+		})
 		if err != nil {
-			ctx.Status(http.StatusInternalServerError)
-			ctx.Abort()
+			logErr("srv.token", "VerifyLoginToken", err)
+			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
@@ -102,6 +114,7 @@ func LoginAuth() gin.HandlerFunc {
 		if tokenVerifyRsp.TokenStatus != tokenProto.TokenStatus_OK {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"message": TokenStatusToMsg[tokenVerifyRsp.TokenStatus]})
 			ctx.Abort()
+			return
 		}
 
 		// 登陆token临期刷新
@@ -111,8 +124,8 @@ func LoginAuth() gin.HandlerFunc {
 				SecretKey: loginTokenSecretKey,
 			})
 			if err != nil {
-				ctx.Status(http.StatusInternalServerError)
-				ctx.Abort()
+				logErr("srv.token", "RefreshLoginToken", err)
+				ctx.AbortWithStatus(http.StatusInternalServerError)
 			} else {
 				ctx.Header(loginTokenHeaderKey, refreshLoginTokenRsp.Token)
 			}
@@ -165,14 +178,14 @@ func router() *gin.Engine {
 	r.Use(Cors())
 	userApi := r.Group("/user")
 	{
-		userApi.Static("/statics", "./static")
+		userApi.Static("/statics", "./statics")
 		// 用户权限
 		authApi := userApi.Group("/auth")
 		{
 			authApi.POST("/register", h.Register)
-			authApi.POST("/Complete", h.Complete).Use(RegisterAuth())
 			authApi.POST("/login", h.Login)
 			authApi.POST("/logout", h.Logout)
+			authApi.Use(RegisterAuth()).POST("/complete", h.Complete)
 		}
 
 		// 用户信息

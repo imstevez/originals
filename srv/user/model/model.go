@@ -4,20 +4,29 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/micro/go-log"
 )
 
 type UserModel struct {
 	DB *sql.DB
 }
 
+func logSQL(sql string, args []interface{}) {
+	log.Logf("sql string: \n%s\nsql args: \n%v\n", sql, args)
+}
+
 // IsEmailExist
 func (mdl *UserModel) IsEmailExist(email string) (bool, error) {
-	sqlStr := `select 1 from users where email = ? limit 1`
+	sqlStr := `select 1 from Users where email = ? limit 1`
 	stmt, err := mdl.DB.Prepare(sqlStr)
 	if err != nil {
 		return false, err
 	}
 	defer stmt.Close()
+
+	logSQL(sqlStr, []interface{}{email})
+
 	rows, err := stmt.Query(email)
 	if err != nil {
 		return false, nil
@@ -42,7 +51,7 @@ type SecretUser struct {
 // GetUserByEmail
 func (mdl *UserModel) GetUserSecret(email string) (*SecretUser, error) {
 	sqlStr := `select ID, Email, Password, PasswordSalt, Nickname, Avatar
-		from users 
+		from Users 
 		where Email = ? and isDeleted = 0;
 	`
 	stmt, err := mdl.DB.Prepare(sqlStr)
@@ -50,6 +59,9 @@ func (mdl *UserModel) GetUserSecret(email string) (*SecretUser, error) {
 		return nil, err
 	}
 	defer stmt.Close()
+
+	logSQL(sqlStr, []interface{}{email})
+
 	rows, err := stmt.Query(email)
 	if err != nil {
 		return nil, err
@@ -77,13 +89,13 @@ type InsertUserObj struct {
 	Avatar       string
 }
 
-// InserUser
+// InsertUser
 func (mdl *UserModel) InsertUser(user *InsertUserObj) (int64, error) {
-	sqlStr := `insert into users (Email, Password, PasswordSalt, NickName,
+	sqlStr := `insert into Users (Email, Password, PasswordSalt, NickName,
 Avatar, CreatedOn) 
 		select ?, ?, ?, ?, ?, ? from dual
 		where not exists (
-			select 1 from users where Email = ? 
+			select 1 from Users where Email = ? 
 			and IsDeleted = 0
 		)
 	`
@@ -92,7 +104,8 @@ Avatar, CreatedOn)
 		return 0, err
 	}
 	defer stmt.Close()
-	if rst, err := stmt.Exec(
+
+	args := []interface{}{
 		user.Email,
 		user.Password,
 		user.PasswordSalt,
@@ -100,7 +113,11 @@ Avatar, CreatedOn)
 		user.Avatar,
 		time.Now().Format("2006-01-02 15:04:05"),
 		user.Email,
-	); err == nil {
+	}
+
+	logSQL(sqlStr, args)
+
+	if rst, err := stmt.Exec(args...); err == nil {
 		return rst.LastInsertId()
 	} else {
 		return 0, err
@@ -109,13 +126,16 @@ Avatar, CreatedOn)
 
 // UpdateLastLoginTime
 func (mdl *UserModel) UpdateLastLoginDate(userId int64) error {
-	sqlStr := `update users set LastLoginDate='%s' where ID = '%d';`
+	sqlStr := `update Users set LastLoginDate='%s' where ID = '%d';`
 	sqlStr = fmt.Sprintf(sqlStr, time.Now().Format("2006-01-02 15:04:05"), userId)
 	stmt, err := mdl.DB.Prepare(sqlStr)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
+
+	logSQL(sqlStr, []interface{}{})
+
 	if _, err := stmt.Exec(); err != nil {
 		return err
 	}

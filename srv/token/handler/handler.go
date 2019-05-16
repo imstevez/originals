@@ -8,9 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"shendu.com/encoding/json"
-
 	"github.com/dgrijalva/jwt-go"
+	"shendu.com/encoding/json"
 )
 
 type Token struct {
@@ -32,7 +31,7 @@ func (t *Token) GetRegisterToken(ctx context.Context, req *proto.GetRegisterToke
 			ExpiresAt: req.Claims.ExpiresAt,
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	rsp.Token, err = token.SignedString([]byte(req.SecretKey))
 	return
 }
@@ -65,10 +64,10 @@ func (t *Token) VerifyRegisterToken(ctx context.Context, req *proto.VerifyRegist
 	if err != nil {
 		if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
 			rsp.TokenStatus = proto.TokenStatus_INVALID
-			return
+			return nil
 		}
 		rsp.TokenStatus = proto.TokenStatus_EXPIRED
-		return
+		return nil
 	}
 
 	// 合法token, 返回OK状态
@@ -96,7 +95,7 @@ func (t *Token) GetLoginToken(ctx context.Context, req *proto.GetLoginTokenReq, 
 			ExpiresAt: req.Claims.ExpiresAt,
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	rsp.Token, err = token.SignedString([]byte(req.SecretKey))
 	return
 }
@@ -106,7 +105,7 @@ func (t *Token) VerifyLoginToken(ctx context.Context, req *proto.VerifyLoginToke
 	// Token是否已被取消
 	canceled, err := t.Model.IsTokenCanceled(req.Token)
 	if err != nil {
-		return err
+		return
 	}
 	if canceled {
 		rsp.TokenStatus = proto.TokenStatus_CANCELED
@@ -132,10 +131,10 @@ func (t *Token) VerifyLoginToken(ctx context.Context, req *proto.VerifyLoginToke
 	if err != nil {
 		if vErr := err.(*jwt.ValidationError); vErr.Errors != jwt.ValidationErrorExpired {
 			rsp.TokenStatus = proto.TokenStatus_INVALID
-			return
+			return nil
 		}
 		rsp.TokenStatus = proto.TokenStatus_EXPIRED
-		return
+		return nil
 	}
 
 	// 合法token, 返回OK状态

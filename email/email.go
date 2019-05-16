@@ -10,13 +10,13 @@ import (
 )
 
 type Email struct {
-	Recivers []string
-	Subject  string
-	Body     string
+	Receivers []string
+	Subject   string
+	Body      string
 }
 
 func SendMail(email *Email) error {
-	log.Logf("Send email to %v\n", email.Recivers)
+	log.Logf("Send email to %v\n", email.Receivers)
 	smtpAddress := fmt.Sprintf(
 		"%s:%d",
 		conf.EmailConf.Host,
@@ -24,7 +24,7 @@ func SendMail(email *Email) error {
 	)
 	message := fmt.Sprintf(
 		"To: %s\r\nFrom: %s\r\nSubject: %s\r\nContent-Type: %s\r\n\r\n%s",
-		strings.Join(email.Recivers, ","),
+		strings.Join(email.Receivers, ","),
 		conf.EmailConf.Sender+"<"+conf.EmailConf.Sender+">",
 		email.Subject,
 		"text/html; charset=UTF-8",
@@ -40,10 +40,10 @@ func SendMail(email *Email) error {
 		smtpAddress,
 		smtpAuth,
 		conf.EmailConf.UserName,
-		email.Recivers,
+		email.Receivers,
 		[]byte(message),
 	); err != nil {
-		log.Log("Email send failed: %v\n", err)
+		log.Logf("Email send failed: %v\n", err)
 		return err
 	}
 	return nil

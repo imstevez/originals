@@ -8,9 +8,9 @@ import (
 	userProto "originals/srv/user/proto"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/gin-gonic/gin"
+	"github.com/micro/go-log"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -51,6 +51,10 @@ const (
 	codePasswordError   = 304
 )
 
+func logErr(srv, mtd string, err error) {
+	log.Logf("service: %s | method: %-24s | error: %v\n", srv, mtd, err)
+}
+
 type User struct {
 	TokenSrv tokenProto.TokenService
 	UserSrv  userProto.UserService
@@ -84,10 +88,11 @@ func (u *User) Register(ctx *gin.Context) {
 			"code":    codeEmailRegistered,
 			"message": "email has been registered",
 		})
+		return
 	}
 
 	// 获取注册token
-	getRegiserTokenRsp, err := u.TokenSrv.GetRegisterToken(ctx, &tokenProto.GetRegisterTokenReq{
+	getRegisterTokenRsp, err := u.TokenSrv.GetRegisterToken(ctx, &tokenProto.GetRegisterTokenReq{
 		Claims: &tokenProto.RegisterTokenClaims{
 			Email:     req.Email,
 			ExpiresAt: time.Now().Add(registerTokenLive * time.Minute).Unix(),
@@ -95,18 +100,20 @@ func (u *User) Register(ctx *gin.Context) {
 		SecretKey: registerTokenSecretKey,
 	})
 	if err != nil {
+		logErr("srv.token", "GetRegisterToken", err)
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
 	// 发送注册邮件
-	mailBody := fmt.Sprintf(registerEmailBody, getRegiserTokenRsp.Token, getRegiserTokenRsp.Token)
+	mailBody := fmt.Sprintf(registerEmailBody, getRegisterTokenRsp.Token, getRegisterTokenRsp.Token)
 	registerMail := &email.Email{
-		Recivers: []string{req.Email},
-		Subject:  "Originals-起源-Beta v1.0 注册测试邮件",
-		Body:     mailBody,
+		Receivers: []string{req.Email},
+		Subject:   "Originals-起源-Beta v1.0 注册测试邮件",
+		Body:      mailBody,
 	}
 	if err := email.SendMail(registerMail); err != nil {
+		logErr("srv.email", "SendMail", err)
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":    codeEmailSendFailed,
 			"message": "register email send failed",
@@ -136,7 +143,8 @@ func (u *User) Complete(ctx *gin.Context) {
 	nickname := ctx.PostForm("nickname")
 	avatarFile, err := ctx.FormFile("avatar")
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		logErr("srv.file", "FormFile", err)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -146,7 +154,8 @@ func (u *User) Complete(ctx *gin.Context) {
 		fileName := fmt.Sprintf("%d_%s", time.Now().Unix(), avatarFile.Filename)
 		dst := fmt.Sprintf("./statics/avatar/%s", fileName)
 		if err := ctx.SaveUploadedFile(avatarFile, dst); err != nil {
-			ctx.Status(500)
+			logErr("srv.file", "SaveUploadedFile", err)
+			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		avatar = avatarUri + fileName
@@ -160,7 +169,8 @@ func (u *User) Complete(ctx *gin.Context) {
 		Avatar:   avatar,
 	})
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		logErr("srv.user", "CreateNewUser", err)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -205,7 +215,8 @@ func (u *User) Login(ctx *gin.Context) {
 		Password: req.Password,
 	})
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		logErr("srv.user", "VerifyUser", err)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -237,7 +248,8 @@ func (u *User) Login(ctx *gin.Context) {
 		SecretKey: loginTokenSecretKey,
 	})
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		logErr("srv.token", "GetLoginToken", err)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -263,7 +275,7 @@ func (u *User) Logout(ctx *gin.Context) {
 	if _, err := u.TokenSrv.CancelToken(context.TODO(), &tokenProto.CancelTokenReq{
 		Token: token,
 	}); err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 

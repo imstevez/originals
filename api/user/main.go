@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "originals/conf"
+
 	"github.com/micro/go-log"
 	"github.com/micro/go-web"
 )
