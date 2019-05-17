@@ -9,7 +9,7 @@ var (
 
 func InitRedis() error {
 	option := &redis.Options{
-		Addr:     "127.0.0.1:6379",
+		Addr:     "www.koogo.net:6379",
 		Password: "root",
 		DB:       0,
 		PoolSize: 5,

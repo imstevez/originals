@@ -185,7 +185,7 @@ func router() *gin.Engine {
 				"message": "Hello, there is originals user api.",
 			})
 		})
-		userApi.Static("/statics", "./statics")
+		userApi.Static("/statics", "/statics")
 		// 用户权限
 		authApi := userApi.Group("/auth")
 		{

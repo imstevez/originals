@@ -13,7 +13,7 @@ var (
 func init() {
 	log.Log("initializing global configs")
 	// Config file
-	if err := config.LoadFile("../../conf.json"); err != nil {
+	if err := config.LoadFile("/etc/originals/conf.json"); err != nil {
 		log.Fatal(err)
 	}
 

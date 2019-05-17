@@ -25,8 +25,7 @@ const (
 		<article>
 			<p>Hi there,</p>
 			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
-			<a href="http://localhost:3000/complete/%s"><i>Account Setting</i></a></p>
-			<p>If the link above doesn't work, please copy this link to your browser:<br> <b>http://localhost:3000/complete/%s</b></p>
+			<a href="http://www.koogo.net/complete/%s"><i>http://www.koogo.net/complete/%s</i></a></p>
 			<p><b>Thanks</b></p>
 		</article>
 		<footer>
@@ -40,7 +39,7 @@ const (
 	loginTokenSecretKey = "login_token_secret_key"
 	loginTokenHeaderKey = "x-login-token"
 	loginInfoContextKey = "login_info"
-	avatarUri           = "http://localhost:8080/user/statics/avatar/"
+	avatarUri           = "http://www.koogo.net:8080/user/statics/avatar/"
 
 	// Response code
 	codeSuccess         = 200
