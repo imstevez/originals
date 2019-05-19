@@ -3,52 +3,56 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import CssBaseline from '@material-ui/core/CssBaseline';
-import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
-import Grid from "@material-ui/core/Grid";
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
-import FormControl from '@material-ui/core/FormControl';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import Input from '@material-ui/core/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-
+import Cloud from '@material-ui/icons/Cloud';
+import TextField from '@material-ui/core/TextField'
 
 
 
 const styles = (theme) => ({
     container: {
-        marginTop: 30
-
+        height: '100vh',
+        padding: 50,
+        background: 'linear-gradient(to right, #348AC7, #7474BF);',
     },
     paper: {
-        maxWidth: 500,
+        maxWidth: 400,
         margin: 'auto',
-        padding: 30,
+        padding: '20px 0 40px 0',
+    },
+    typography: {
+        textAlign: 'center',
+        fontSize: '18px',
+        lineHeight: '18px'
+    },
+    cloud: {
+        fontSize: 70,
+        lineHeight: 70,
     },
     divider: {
-        margin: 0
+        margin: '15px 0 40px 0'
     },
-    grid: {
+    form: {
         display: 'flex',
-        margin: '20px 0',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    formControl: {
-        width: '70%',
-        [theme.breakpoints.down('sm')]: {
-            width: '85%',
-        },
+    textField: {
+        width: '70%'
     },
     button: {
-        height: 40,
-        marginTop: 20
+        fontSize: '18px',
+        height: 45,
+        width: '40%',
+        marginTop: 20,
+        marginBottom: 10,
     }
 });
 
-const emailTips = "E.g. example@example.com";
+const emailTips = "";
 const registerApi = "http://www.koogo.net:8080/user/auth/register";
 
 class Register extends React.Component {
@@ -135,26 +139,39 @@ class Register extends React.Component {
             <div className={classes.container}>
                 <CssBaseline/>
                 <Paper className={classes.paper}>
-                    <Typography component="h3" variant="h6" color="textPrimary" align="right" gutterBottom>
-                        Register |  <a href="/login">Login</a>
+                    <Typography
+                        component="h1"
+                        variant="h6"
+                        color="primary"
+                        className={classes.typography}
+                    >
+                        <Cloud className={classes.cloud}/><br/>我记 ● 云账本
                     </Typography>
                     <Divider variant="middle" className={classes.divider} />
-                    <Grid container justify="center" className={classes.grid} aria-disabled={this.state.disabled}>
-                        <FormControl className={classes.formControl} error={this.state.emailErr}>
-                            <InputLabel htmlFor="register-email">Email</InputLabel>
-                            <Input
-                                id="register-email"
-                                value={this.state.email}
-                                onChange={e => this.handleEmail(e)}
-                                aria-describedby="register-email-error"
-                                disabled={this.state.disabled}
-                            />
-                            <FormHelperText id="register-email-error">{this.state.emailTips}</FormHelperText>
-                        </FormControl>
-                        <Button onClick={() => this.handleSubmit()} disabled={this.state.disabled} variant="outlined" color="primary" className={classes.button} size="large">
-                            REGISTER
+                    <form className={classes.form}>
+                        <TextField
+                            className={classes.textField}
+                            id="login-email"
+                            variant="filled"
+                            label="邮箱"
+                            autoComplete="off"
+                            disabled={this.state.disabled}
+                        />
+                        <Button
+                            onClick={() => this.handleSubmit()}
+                            variant="outlined" color="primary"
+                            disabled={this.state.disabled}
+                            className={classes.button}>
+                            注册
                         </Button>
-                    </Grid>
+                        <Typography
+                            component="h3"
+                            variant="button"
+                            color="textPrimary"
+                        >
+                            <a href="/login">已完成注册, 登陆</a>
+                        </Typography>
+                    </form>
                 </Paper>
             </div>
         );
