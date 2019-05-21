@@ -226,7 +226,6 @@ class Login extends React.Component {
                 }
             });
         }).catch(err => {
-            alert(err);
             this.setState({
                 disabled: false,
                 info: {
