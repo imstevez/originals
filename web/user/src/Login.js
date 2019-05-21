@@ -11,6 +11,7 @@ import TextField from '@material-ui/core/TextField';
 import MySnackbarContent from './MySnackbarContent';
 import Snackbar from '@material-ui/core/Snackbar';
 import LinearProgress from '@material-ui/core/LinearProgress';
+import Link from "@material-ui/core/Link";
 
 
 
@@ -32,15 +33,17 @@ const styles = (theme) => ({
     },
     typography: {
         textAlign: 'center',
+        verticalAlign: 'middle',
         fontSize: '18px',
-        lineHeight: '18px'
+        lineHeight: '40px'
     },
     cloud: {
-        fontSize: 70,
-        lineHeight: 70,
+        verticalAlign: 'top',
+        fontSize: '35px',
+        marginRight: 10
     },
     divider: {
-        margin: '15px 0 40px 0'
+        margin: '0 0 40px 0'
     },
     form: {
         display: 'flex',
@@ -56,7 +59,7 @@ const styles = (theme) => ({
         height: 45,
         width: '40%',
         marginTop: 20,
-        marginBottom: 10,
+        marginBottom: 5,
     }
 });
 
@@ -80,6 +83,12 @@ class Login extends React.Component {
             disabled: false,
         }
     }
+    componentDidMount() {
+        if (storage.token) {
+            this.props.history.push("/profile")
+        }
+    }
+
     handleEmail(e) {
         this.setState({
             email: e.target.value,
@@ -103,6 +112,12 @@ class Login extends React.Component {
             info: orInfo
         });
     };
+    handleKeyDown = e => {
+        if (e.keyCode === 13) {
+            this.handleLogin();
+            e.preventDefault();
+        }
+    };
     handleLogin() {
         if(!this.state.email) {
             this.setState({
@@ -110,7 +125,7 @@ class Login extends React.Component {
                 info: {
                     open: true,
                     variant: "error",
-                    message: "密码不能为空!"
+                    message: "邮箱不能为空!"
                 }
             });
             return
@@ -149,6 +164,7 @@ class Login extends React.Component {
         }).then(data => {
             if(data.code === 200) {
                 this.setState({
+                    disabled: false,
                     info: {
                         open: true,
                         variant: "success",
@@ -212,7 +228,12 @@ class Login extends React.Component {
         }).catch(err => {
             alert(err);
             this.setState({
-                disabled: false
+                disabled: false,
+                info: {
+                    open: true,
+                    variant: "error",
+                    message: "网络错误: " + err
+                }
             });
         });
         this.setState({
@@ -222,7 +243,9 @@ class Login extends React.Component {
     render() {
         const { classes } = this.props;
         return (
-            <div className={classes.container}>
+            <div className={classes.container} onSubmit={e => {
+                alert(e)
+            }}>
                 <CssBaseline/>
                 <LinearProgress hidden={!this.state.disabled} className={classes.progress} />
                 <Snackbar
@@ -247,10 +270,10 @@ class Login extends React.Component {
                         color="primary"
                         className={classes.typography}
                     >
-                        <Cloud className={classes.cloud}/><br/>我记 ● 云账本
+                        <Cloud className={classes.cloud}/>云记
                     </Typography>
-                    <Divider variant="middle" className={classes.divider} />
-                    <form className={classes.form}>
+                    <Divider variant="middle" className={classes.divider}/>
+                    <form className={classes.form} onKeyDown={this.handleKeyDown}>
                         <TextField
                             className={classes.textField}
                             id="login-email"
@@ -262,6 +285,7 @@ class Login extends React.Component {
                             onBlur={e => this.handleEmail(e)}
                             error={this.state.emailErr}
                             disabled={this.state.disabled}
+                            required
                         />
                         <TextField
                             className={classes.textField}
@@ -275,6 +299,7 @@ class Login extends React.Component {
                             onBlur={e => this.handlePassword(e)}
                             error={this.state.passwordErr}
                             disabled={this.state.disabled}
+                            required
                         />
                         <Button
                             variant="outlined" color="primary"
@@ -284,13 +309,15 @@ class Login extends React.Component {
                         >
                             登陆
                         </Button>
-                        <Typography
-                            component="h3"
-                            variant="button"
-                            color="textPrimary"
+                        <Link
+                            component="button"
+                            variant="body2"
+                            onClick={() => {
+                                this.props.history.push("/register");
+                            }}
                         >
-                            <a href="/register">还未注册, 注册</a>
-                        </Typography>
+                            没有账号, 注册
+                        </Link>
                     </form>
                 </Paper>
             </div>

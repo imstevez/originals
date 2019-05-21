@@ -6,19 +6,27 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import CssBaseline from "@material-ui/core/CssBaseline";
-import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import Avatar from "@material-ui/core/Avatar";
 import Divider from "@material-ui/core/Divider";
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';
+import TableCell from '@material-ui/core/TableCell';
+import TableRow from '@material-ui/core/TableRow';
+import Paper from '@material-ui/core/Paper';
+import IconButton from '@material-ui/core/IconButton';
+import MenuIcon from '@material-ui/icons/Menu';
+import ExitToApp from '@material-ui/icons/ExitToApp';
+import MySnackbarContent from "./MySnackbarContent";
+import Snackbar from "@material-ui/core/Snackbar";
+
 
 const styles = theme => ({
     root: {flexGrow: 1,},
-    grow: {flexGrow: 1,},
-    appBar: {height: 60},
+    toolbar: {display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    wrapMenu: {display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center'},
     menuButton: {marginLeft: -12, marginRight: 20},
-    paper: {width: 600, margin: 'auto', padding: 30, marginTop: 20},
-    input: {width: 400},
-    button: {margin: 20, height: 50, width: 200,},
+    paper: {width: 450, margin: 'auto', padding: 30, marginTop: 20, textAlign: 'center'},
     rightIcon: {marginLeft: theme.spacing.unit,},
     divider: {margin: '0 0 20px 0'},
     bigAvatar: {margin: 10, width: 100, height: 100, cursor: 'pointer'},
@@ -26,9 +34,7 @@ const styles = theme => ({
     b: {display: 'flex', width: 300}
 });
 
-
 const storage = window.localStorage;
-
 class ButtonAppBar extends React.Component {
     image_url;
     user_id;
@@ -39,6 +45,12 @@ class ButtonAppBar extends React.Component {
             id: "",
             email: "",
             nickname: "",
+            info: {
+                open: false,
+                variant: "success",
+                message: ""
+            },
+            disabled: false
         }
     }
     redirectLogin(){
@@ -53,15 +65,36 @@ class ButtonAppBar extends React.Component {
                 "x-login-token": storage.token,
             }
         }).then(rsp => {
+            let freshToken = rsp.headers.get("x-login-token")
+            if(freshToken) {
+                storage.token = freshToken;
+            }
             return rsp.json()
         }).then(data => {
-            alert(data.message);
-            localStorage.token = "";
-            this.props.history.push("/login");
+            storage.token = "";
+            this.setState({
+                disabled: false,
+                info: {
+                    open: true,
+                    variant: "success",
+                    message: "注销登陆成功!"
+                }
+            });
+
+            let that = this;
+            setTimeout(function () {
+                that.props.history.push("/login");
+            }, 1000);
         }).catch(err => {
-            localStorage.token = "";
-            alert(err);
-            this.props.history.push("/login");
+            storage.token = "";
+            this.setState({
+                disabled: false,
+                info: {
+                    open: true,
+                    variant: "error",
+                    message: "注销登陆失败!"
+                }
+            });
         })
     }
     componentDidMount() {
@@ -99,12 +132,32 @@ class ButtonAppBar extends React.Component {
         return (
             <div className={classes.root}>
                 <CssBaseline/>
-                <AppBar position="static" className={classes.appBar}>
-                    <Toolbar>
-                        <Typography variant="h6" color="inherit" className={classes.grow}>
-                            Profile
-                        </Typography>
-                        <Button color="inherit" onClick={() => {this.handleLogout()}}>LOGOUT</Button>
+                <Snackbar
+                    anchorOrigin={{
+                        vertical: 'top',
+                        horizontal: 'center',
+                    }}
+                    open={this.state.info.open}
+                    autoHideDuration={1000}
+                    onClose={this.handleInfoClose}
+                >
+                    <MySnackbarContent
+                        onClose={this.handleInfoClose}
+                        variant={this.state.info.variant}
+                        message={this.state.info.message}
+                    />
+                </Snackbar>
+                <AppBar position="static">
+                    <Toolbar variant="dense" className={classes.toolbar}>
+                        <Grid className={classes.wrapMenu}>
+                            <IconButton className={classes.menuButton} color="inherit" aria-label="Menu">
+                                <MenuIcon />
+                            </IconButton>
+                            <Typography variant="h6" color="inherit">
+                                用户信息
+                            </Typography>
+                        </Grid>
+                        <Button color="inherit" onClick={() => {this.handleLogout()}}><ExitToApp/>退出登陆</Button>
                     </Toolbar>
                 </AppBar>
                 <Paper className={classes.paper} elevation={1}>
@@ -112,13 +165,28 @@ class ButtonAppBar extends React.Component {
                         <Avatar src={this.state.avatar} className={classes.bigAvatar} />
                     </Grid>
                     <Divider variant="middle" className={classes.divider} />
-                    <Grid container justify="center" direction="column">
-                        <Typography gutterBottom variant="h6" component="h3">{this.state.id}</Typography>
-                        <Divider variant="middle" className={classes.divider} />
-                        <Typography gutterBottom variant="h6" component="h3">{this.state.nickname}</Typography>
-                        <Divider variant="middle" className={classes.divider} />
-                        <Typography gutterBottom variant="h6" component="h3">{this.state.email}</Typography>
-                    </Grid>
+                    <Table className={classes.table}>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell component="th" scope="row">
+                                    用户ID
+                                </TableCell>
+                                <TableCell align="right">{this.state.id}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell component="th" scope="row">
+                                    昵称
+                                </TableCell>
+                                <TableCell align="right">{this.state.nickname}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell component="th" scope="row">
+                                    邮箱
+                                </TableCell>
+                                <TableCell align="right">{this.state.email}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </Paper>
             </div>
         );

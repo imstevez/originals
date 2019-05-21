@@ -23,13 +23,14 @@ const (
 	<body>
 		<header><h3>Originals Beta v1.0<h3><hr></header>
 		<article>
-			<p>Hi there,</p>
-			<p>Before use the <b>originals</b>, please take a few minutes to complete your account. This link will take you to the page:<br>
+			<p>Hi, 你好</p>
+			<p>欢迎注册<b>云记</b>, 在使用应用前，您还需要您点击本邮件中的链接完成密码等一些必要的账户设置:<br>
 			<a href="http://www.koogo.net/complete/%s"><i>http://www.koogo.net/complete/%s</i></a></p>
-			<p><b>Thanks</b></p>
+			<p>如果以上链接无法打开, 您可以直接复制链接地址到浏览器中打开, 链接30分钟内有效.</p>
+			<p><b>谢谢使用</b></p>
 		</article>
 		<footer>
-			<p>-------------------------------<br>Originals-Team</p>
+			<p>-------------------------------<br>云记 团队</p>
 		<footer>
 	</body>
 </html>
@@ -108,7 +109,7 @@ func (u *User) Register(ctx *gin.Context) {
 	mailBody := fmt.Sprintf(registerEmailBody, getRegisterTokenRsp.Token, getRegisterTokenRsp.Token)
 	registerMail := &email.Email{
 		Receivers: []string{req.Email},
-		Subject:   "Originals-起源-Beta v1.0 注册测试邮件",
+		Subject:   "云记-Beta v1.0 注册测试邮件",
 		Body:      mailBody,
 	}
 	if err := email.SendMail(registerMail); err != nil {
